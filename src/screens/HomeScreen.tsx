@@ -1,24 +1,33 @@
 /**
  * Home Screen
  *
- * Post-auth landing screen for Step M-4.
- * Shows the logged-in user and a logout button.
- * Will be expanded in Step M-6 with pet stats.
+ * Post-auth landing screen. Shows user info, realtime sync status, and
+ * event counter. Will be expanded in Step M-6 with pet stats.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../utils/useTheme';
 import { useAuthStore } from '../stores/AuthStore';
+import { useSyncStore } from '../stores/SyncStore';
 import { Button } from '../shared/components/Button';
 import { Card } from '../shared/components/Card';
 import { Badge } from '../shared/components/Badge';
+import { SyncStatusBadge } from '../shared/components/SyncStatusBadge';
 
 export function HomeScreen() {
   const theme = useTheme();
   const { user, status, logout } = useAuthStore();
+  const syncStatus = useSyncStore((s) => s.status);
+  const reconnectAttempt = useSyncStore((s) => s.reconnectAttempt);
+  const lastEventTs = useSyncStore((s) => s.lastEventTs);
+  const eventsReceived = useSyncStore((s) => s.eventsReceived);
 
   const isLoggingOut = status === 'logging_out';
+
+  const lastEventText = lastEventTs
+    ? new Date(lastEventTs).toLocaleTimeString()
+    : '-';
 
   return (
     <View style={[styles.root, { backgroundColor: theme.colors.bg }]}>
@@ -54,7 +63,7 @@ export function HomeScreen() {
               {user?.displayName ?? user?.email ?? 'User'}
             </Text>
           </View>
-          <Badge label="AUTH" variant="success" size="sm" />
+          <SyncStatusBadge />
         </View>
       </View>
 
@@ -86,11 +95,17 @@ export function HomeScreen() {
               { color: theme.colors.text, fontSize: theme.typography.size.headline, fontWeight: '600' },
             ]}
           >
-            Auth State
+            Realtime Sync
           </Text>
           <View style={{ height: theme.spacing.md }} />
-          <InfoRow label="Status" value={status} theme={theme} />
-          <InfoRow label="Token stored" value={user ? 'Yes' : 'No'} theme={theme} />
+          <InfoRow label="Status" value={syncStatus} theme={theme} />
+          <InfoRow
+            label="Reconnect attempt"
+            value={reconnectAttempt === 0 ? '-' : String(reconnectAttempt)}
+            theme={theme}
+          />
+          <InfoRow label="Events received" value={String(eventsReceived)} theme={theme} />
+          <InfoRow label="Last event" value={lastEventText} theme={theme} mono />
         </Card>
 
         <View style={{ height: theme.spacing.xl }} />

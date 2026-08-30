@@ -11,6 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { AppNavigator } from './src/navigation/AppNavigator';
+import { SyncLifecycle } from './src/stores/SyncLifecycle';
 import { useTheme } from './src/utils/useTheme';
 
 function ThemedApp() {
@@ -44,7 +45,9 @@ function ThemedApp() {
   return (
     <NavigationContainer theme={navTheme}>
       <StatusBar style={theme.isDark ? 'light' : 'dark'} />
-      <AppNavigator />
+      <SyncLifecycle>
+        <AppNavigator />
+      </SyncLifecycle>
     </NavigationContainer>
   );
 }

@@ -10,6 +10,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+### Step M-5 (Realtime Sync)
+- `src/api/syncTypes.ts`: Typed wire format for realtime messages.
+  Includes envelope shape, server event types (pet:update, pet:mood,
+  chat:message, chat:read, friend:status, friend:request,
+  achievement:unlocked, quest:progress, pairing:code/confirmed,
+  sync:hello/pong), client message types (client:hello/ping/subscribe/
+  unsubscribe/ack), and a SyncEventPayloadMap for type-safe listeners.
+- `src/api/SyncManager.ts`: Class managing a single WebSocket connection.
+  - Auto-reconnect with exponential backoff (1s -> 30s) + jitter
+  - Heartbeat: client pings every 30s, expects pong within 10s, otherwise
+    closes the socket to trigger reconnect
+  - Channel subscribe / unsubscribe (re-subscribes after reconnect)
+  - Typed event subscription API: `on('pet:update', handler)` returns an
+    unsubscribe fn
+  - Send client messages, ack server events
+  - Connection status tracking (idle, connecting, open, reconnecting,
+    closed)
+- `src/api/deviceId.ts`: getOrCreateDeviceId() generates a UUID and
+  persists it to AsyncStorage. Used as the SyncManager clientId.
+- `src/stores/SyncStore.ts`: Zustand wrapper around SyncManager.
+  - Owns the manager lifecycle (created once, started on auth, stopped
+    on logout)
+  - Exposes connection status, reconnect attempt count, last event
+    timestamp, events-received counter
+  - Exports `useSyncEvent<K>(type, handler)` hook that subscribes /
+    unsubscribes as React effects (typed by event type)
+  - `setSyncAuthToken(token)` lets the SyncManager read the token
+    synchronously on (re)connect
+- `src/stores/SyncLifecycle.tsx`: React wrapper that calls syncStart /
+  syncStop based on AuthStore.status, and refreshes the cached auth
+  token when auth state changes.
+- `src/shared/components/SyncStatusBadge.tsx`: Pill badge showing live
+  connection state (Live / Connecting / Retry N / Offline).
+- `App.tsx`: Wraps AppNavigator in SyncLifecycle so the WS auto-connects
+  on auth.
+- `HomeScreen`: Now includes a Realtime Sync card with status, reconnect
+  attempt, events-received counter, and last event timestamp.
+
 ### Step M-4 (Auth Flow)
 - `src/api/auth.ts`: Auth API module with `sendOtp`, `verifyOtp`, `logoutApi`.
   Dev fallback returns mock sessions so the flow is testable without a real
