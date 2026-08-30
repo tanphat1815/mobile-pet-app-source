@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+### Step M-3 (API Client + Storage)
+- `src/api/config.ts`: API_BASE_URL, WS_URL, timeouts, reconnect tuning.
+  Reads EXPO_PUBLIC_API_BASE_URL / EXPO_PUBLIC_WS_URL env overrides.
+  Currently points at httpbin / Postman echo for development.
+- `src/api/storage.ts`: Typed AsyncStorage wrapper with helper methods for
+  auth token, refresh token, user data, theme preference, settings flags.
+- `src/api/client.ts`: Axios instance with request interceptor (Bearer
+  token + X-User-Id headers) and response interceptor (normalizes errors,
+  clears auth on 401). Exposes `pingApi()` for health checks and
+  `getApiError()` for normalized error extraction.
+- `src/types/global.d.ts`: re-declares Metro's __DEV__ global for TS.
+- HomePlaceholderScreen updated with API ping + storage read/write UI
+  to verify the client works end-to-end.
+- Removed ComponentGallery screen (was M-2 demo only).
+
 ### Step M-2 (Shared UI Library)
 - 7 Reanimated transition hooks in `src/shared/transitions/`:
   - `useModalTransition` - fade + scale + translateY for modals

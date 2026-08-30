@@ -2,8 +2,9 @@
  * App Navigator
  *
  * Stack-based navigation using React Navigation Native Stack.
- * Currently routes HomePlaceholder -> AuthPlaceholder for Step M-1.
- * The ComponentGallery is wired in for Step M-2 demo.
+ * Routes:
+ * - Home (placeholder) -> will be replaced by HomeScreen in Step M-6
+ * - Auth (placeholder) -> will be replaced by AuthScreens in Step M-4
  */
 
 import React from 'react';
@@ -11,12 +12,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTheme } from '../utils/useTheme';
 import { HomePlaceholderScreen } from '../screens/HomePlaceholderScreen';
 import { AuthPlaceholderScreen } from '../screens/AuthPlaceholderScreen';
-import { ComponentGallery } from '../screens/ComponentGallery';
 
 export type RootStackParamList = {
   Home: undefined;
   Auth: undefined;
-  Gallery: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -26,7 +25,7 @@ export function AppNavigator() {
 
   return (
     <Stack.Navigator
-      initialRouteName="Gallery"
+      initialRouteName="Home"
       screenOptions={{
         headerStyle: { backgroundColor: theme.colors.bg },
         headerTintColor: theme.colors.text,
@@ -45,11 +44,6 @@ export function AppNavigator() {
         name="Auth"
         component={AuthPlaceholderScreen}
         options={{ title: 'Sign In' }}
-      />
-      <Stack.Screen
-        name="Gallery"
-        component={ComponentGallery}
-        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

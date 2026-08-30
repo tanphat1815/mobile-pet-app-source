@@ -1,114 +1,170 @@
 /**
  * Home Placeholder Screen
  *
- * Temporary home screen for Step M-1. Will be replaced by full HomeScreen in Step M-6.
- * Verifies that theme tokens render correctly across light/dark modes.
+ * Temporary home screen for Steps M-1 to M-3. Will be replaced by full
+ * HomeScreen in Step M-6. Currently demonstrates:
+ * - Theme tokens (light/dark)
+ * - Reduced motion detection
+ * - API client + storage (Step M-3)
  */
 
-import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useTheme } from '../utils/useTheme';
 import { useReducedMotion } from '../utils/useReducedMotion';
+import { Button } from '../shared/components/Button';
+import { Card } from '../shared/components/Card';
+import { pingApi, getApiError } from '../api/client';
+import {
+  storage,
+  StorageKeys,
+  getThemePreference,
+  setThemePreference,
+} from '../api/storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
+type PingState =
+  | { kind: 'idle' }
+  | { kind: 'loading' }
+  | { kind: 'ok'; uuid: string }
+  | { kind: 'error'; message: string };
+
 export function HomePlaceholderScreen({ navigation }: Props) {
   const theme = useTheme();
   const reducedMotion = useReducedMotion();
 
+  const [pingState, setPingState] = useState<PingState>({ kind: 'idle' });
+  const [storedPref, setStoredPref] = useState<string>('-');
+  const [writeValue, setWriteValue] = useState<string>('');
+  const [readValue, setReadValue] = useState<string>('-');
+
+  const runPing = async () => {
+    setPingState({ kind: 'loading' });
+    try {
+      const ok = await pingApi();
+      if (ok) {
+        setPingState({ kind: 'ok', uuid: 'reachable' });
+      } else {
+        setPingState({ kind: 'error', message: 'Ping returned false' });
+      }
+    } catch (err) {
+      const e = getApiError(err);
+      setPingState({ kind: 'error', message: `${e.code}: ${e.message}` });
+    }
+  };
+
+  const loadThemePref = async () => {
+    const pref = await getThemePreference();
+    setStoredPref(pref);
+  };
+
+  const toggleThemePref = async () => {
+    const current = await getThemePreference();
+    const next = current === 'dark' ? 'light' : current === 'light' ? 'system' : 'dark';
+    await setThemePreference(next);
+    setStoredPref(next);
+  };
+
+  const writeTest = async () => {
+    await storage.set(StorageKeys.OnboardingComplete, writeValue || 'written');
+  };
+
+  const readTest = async () => {
+    const v = await storage.getString(StorageKeys.OnboardingComplete);
+    setReadValue(v ?? '(empty)');
+  };
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
-      <Text style={[styles.title, { color: theme.colors.text }]}>
-        Mobile Pet App
-      </Text>
+    <ScrollView
+      style={[styles.root, { backgroundColor: theme.colors.bg }]}
+      contentContainerStyle={styles.content}
+    >
+      <Card>
+        <Text style={[styles.h1, { color: theme.colors.text }]}>Step M-3</Text>
+        <Text style={[styles.body, { color: theme.colors.textSecondary }]}>
+          API client + storage verification.
+        </Text>
+        <Text style={[styles.body, { color: theme.colors.textSecondary }]}>
+          Theme: {theme.isDark ? 'Dark' : 'Light'} | Reduced motion:{' '}
+          {reducedMotion ? 'On' : 'Off'}
+        </Text>
+      </Card>
 
-      <View
-        style={[
-          styles.card,
-          {
-            backgroundColor: theme.colors.surface,
-            borderRadius: theme.radius.lg,
-            ...theme.shadows.elevation2,
-          },
-        ]}
-      >
-        <Text style={[styles.cardTitle, { color: theme.colors.text }]}>
-          Step M-1 - Scaffold + Theme Foundation
-        </Text>
-        <Text style={[styles.cardBody, { color: theme.colors.textSecondary }]}>
-          Apple HIG design tokens are loaded correctly.
-        </Text>
-        <Text style={[styles.cardBody, { color: theme.colors.textSecondary }]}>
-          Current mode: {theme.isDark ? 'Dark' : 'Light'}
-        </Text>
-        <Text style={[styles.cardBody, { color: theme.colors.textSecondary }]}>
-          Reduced motion: {reducedMotion ? 'On' : 'Off'}
-        </Text>
-      </View>
+      <View style={{ height: theme.spacing.lg }} />
 
-      <View style={styles.spacer} />
-
-      <Pressable
-        style={({ pressed }) => [
-          styles.button,
-          {
-            backgroundColor: theme.colors.accent,
-            borderRadius: theme.radius.pill,
-            opacity: pressed ? 0.8 : 1,
-            ...theme.shadows.elevation1,
-          },
-        ]}
-        onPress={() => navigation.navigate('Auth')}
-      >
-        <Text style={[styles.buttonText, { color: theme.colors.textInverse }]}>
-          Go to Auth (placeholder)
+      <Card>
+        <Text style={[styles.h2, { color: theme.colors.text }]}>API Client</Text>
+        <Text style={[styles.body, { color: theme.colors.textSecondary }]}>
+          Base URL: <Text style={styles.mono}>{process.env.EXPO_PUBLIC_API_BASE_URL ?? '(default)'}</Text>
         </Text>
-      </Pressable>
-    </View>
+        <Text style={[styles.body, { color: theme.colors.textSecondary }]}>
+          Ping status:{' '}
+          {pingState.kind === 'idle' && 'not yet'}
+          {pingState.kind === 'loading' && 'loading...'}
+          {pingState.kind === 'ok' && `ok (${pingState.uuid})`}
+          {pingState.kind === 'error' && `error (${pingState.message})`}
+        </Text>
+        <View style={{ height: theme.spacing.md }} />
+        <Button title="Ping API" onPress={runPing} loading={pingState.kind === 'loading'} />
+      </Card>
+
+      <View style={{ height: theme.spacing.lg }} />
+
+      <Card>
+        <Text style={[styles.h2, { color: theme.colors.text }]}>Storage</Text>
+        <Text style={[styles.body, { color: theme.colors.textSecondary }]}>
+          Theme preference: {storedPref}
+        </Text>
+        <View style={{ height: theme.spacing.sm }} />
+        <Button title="Load theme pref" onPress={loadThemePref} variant="secondary" size="sm" />
+        <View style={{ height: theme.spacing.xs }} />
+        <Button title="Toggle theme pref" onPress={toggleThemePref} variant="secondary" size="sm" />
+
+        <View style={{ height: theme.spacing.md }} />
+        <Text style={[styles.body, { color: theme.colors.textSecondary }]}>
+          Read value: {readValue}
+        </Text>
+        <View style={{ height: theme.spacing.sm }} />
+        <Button title="Write test" onPress={writeTest} variant="secondary" size="sm" />
+        <View style={{ height: theme.spacing.xs }} />
+        <Button title="Read test" onPress={readTest} variant="secondary" size="sm" />
+      </Card>
+
+      <View style={{ height: theme.spacing.lg }} />
+
+      <Button title="Go to Auth (placeholder)" onPress={() => navigation.navigate('Auth')} />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 32,
-    alignItems: 'stretch',
   },
-  title: {
-    fontSize: 34,
+  content: {
+    padding: 16,
+    paddingBottom: 48,
+  },
+  h1: {
+    fontSize: 28,
     fontWeight: '700',
-    marginBottom: 24,
-    letterSpacing: 0.4,
+    marginBottom: 8,
   },
-  card: {
-    padding: 20,
-    marginBottom: 16,
-  },
-  cardTitle: {
+  h2: {
     fontSize: 20,
     fontWeight: '600',
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  cardBody: {
+  body: {
     fontSize: 15,
-    marginBottom: 6,
+    marginBottom: 4,
     lineHeight: 21,
   },
-  spacer: {
-    height: 24,
-  },
-  button: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 44,
-  },
-  buttonText: {
-    fontSize: 17,
-    fontWeight: '600',
+  mono: {
+    fontFamily: 'monospace',
+    fontSize: 13,
   },
 });
