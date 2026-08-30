@@ -7,29 +7,25 @@
  *
  * Flow:
  *   App mounts → AuthStore.restoreSession() → 'restoring'
- *   → 'authenticated' → MainStack (Home)
+ *   → 'authenticated' → MainStack (Home, Chat, Friends, ...)
  *   → 'unauthenticated' → AuthStack (Login)
- *
- * When the user logs out, the navigator switches back to the Auth stack.
  */
 
 import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import {
   createNativeStackNavigator,
-  NativeStackScreenProps,
 } from '@react-navigation/native-stack';
 import { useTheme } from '../utils/useTheme';
 import { useAuthStore } from '../stores/AuthStore';
 import { AuthNavigator } from './AuthNavigator';
 import { HomeScreen } from '../screens/HomeScreen';
-
-export type RootStackParamList = {
-  Auth: undefined;
-  Main: undefined;
-};
+import { ChatListScreen } from '../screens/ChatListScreen';
+import { ChatThreadScreen } from '../screens/ChatThreadScreen';
+import type { RootStackParamList, MainStackParamList } from './types';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
+const MainStack = createNativeStackNavigator<MainStackParamList>();
 
 function AuthRestorer({ children }: { children: React.ReactNode }) {
   const restoreSession = useAuthStore((s) => s.restoreSession);
@@ -71,12 +67,6 @@ function RootNavigator() {
   );
 }
 
-type MainStackParamList = {
-  Home: undefined;
-};
-
-const MainStack = createNativeStackNavigator<MainStackParamList>();
-
 function MainNavigator() {
   const theme = useTheme();
 
@@ -86,8 +76,15 @@ function MainNavigator() {
         headerShown: false,
         contentStyle: { backgroundColor: theme.colors.bg },
       }}
+      initialRouteName="Home"
     >
       <MainStack.Screen name="Home" component={HomeScreen} />
+      <MainStack.Screen name="ChatList" component={ChatListScreen} />
+      <MainStack.Screen
+        name="ChatThread"
+        component={ChatThreadScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
     </MainStack.Navigator>
   );
 }

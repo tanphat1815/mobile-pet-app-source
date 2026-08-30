@@ -15,6 +15,7 @@ import { useReducedMotion } from '../utils/useReducedMotion';
 import { useAuthStore } from '../stores/AuthStore';
 import { useSyncStore } from '../stores/SyncStore';
 import { usePetStore, usePetRealtimeSync } from '../stores/PetStore';
+import { useChatStore } from '../stores/ChatStore';
 import { Button } from '../shared/components/Button';
 import { Card } from '../shared/components/Card';
 import { Badge } from '../shared/components/Badge';
@@ -25,6 +26,10 @@ import { PetActionButton } from '../shared/components/PetActionButton';
 import { SyncStatusBadge } from '../shared/components/SyncStatusBadge';
 import { NotificationCard } from '../shared/components/NotificationCard';
 import type { PetAction } from '../api/petTypes';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { MainStackParamList } from '../navigation/types';
+
+type Props = NativeStackScreenProps<MainStackParamList, 'Home'>;
 
 const PET_ACTIONS: { action: PetAction; label: string; emoji: string }[] = [
   { action: 'feed', label: 'Feed', emoji: '🍱' },
@@ -33,7 +38,7 @@ const PET_ACTIONS: { action: PetAction; label: string; emoji: string }[] = [
   { action: 'pet', label: 'Pet', emoji: '💕' },
 ];
 
-export function HomeScreen() {
+export function HomeScreen({ navigation }: Props) {
   const theme = useTheme();
   const reducedMotion = useReducedMotion();
 
@@ -47,6 +52,9 @@ export function HomeScreen() {
   const pendingActions = usePetStore((s) => s.pendingActions);
   const loadPet = usePetStore((s) => s.load);
   const performAction = usePetStore((s) => s.performAction);
+
+  const conversations = useChatStore((s) => s.conversations);
+  const unreadTotal = conversations.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
 
   // Subscribe to pet realtime updates
   usePetRealtimeSync();
@@ -234,6 +242,40 @@ export function HomeScreen() {
 
       <NotificationCard />
 
+      {/* Chat quick-link */}
+      <Card style={styles.section}>
+        <View style={styles.chatLinkRow}>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                color: theme.colors.text,
+                fontSize: theme.typography.size.headline,
+                fontWeight: '600',
+              }}
+            >
+              Chat
+            </Text>
+            <Text
+              style={{
+                color: theme.colors.textSecondary,
+                fontSize: theme.typography.size.subhead,
+                marginTop: 2,
+              }}
+            >
+              {unreadTotal > 0
+                ? `${unreadTotal} unread message${unreadTotal > 1 ? 's' : ''}`
+                : 'No unread messages'}
+            </Text>
+          </View>
+          <Button
+            title="Open"
+            onPress={() => navigation.navigate('ChatList')}
+            variant="primary"
+            size="sm"
+          />
+        </View>
+      </Card>
+
       <View style={{ height: theme.spacing.xl }} />
 
       <Button
@@ -303,6 +345,10 @@ const styles = StyleSheet.create({
   section: {
     marginHorizontal: 16,
     marginTop: 16,
+  },
+  chatLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   petHeader: {
     flexDirection: 'row',

@@ -10,6 +10,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+### Step M-8 (Chat 1-1 screens)
+- `src/api/chatTypes.ts`: Chat domain types
+  - `ChatMessage { id, conversationId, fromUserId, toUserId, kind,
+    text, ts, status, meta? }`
+  - `MessageStatus = pending | sent | delivered | read | failed`
+  - `MessageKind = text | pet_share | system`
+  - `ConversationParticipant`, `Conversation`, `SendMessageInput`,
+    `SendMessageResponse`
+  - Helpers: `otherParticipant`, `byUpdatedDesc`, `byTsAsc`,
+    `formatRelativeTime`
+- `src/api/chat.ts`: REST API for conversations + messages with a
+  local mock state (3 conversations: Alice online, Bob offline, Carol
+  online). Methods:
+  - `listConversations()`, `getConversation(id)`, `getMessages(id)`
+  - `sendMessage(id, text, clientMsgId?)` - appends to mock state
+  - `markRead(id, lastReadMessageId)`
+  - `appendMessage` / `markMessagesReadBy` / `injectIncomingMessage` -
+    internal hooks for realtime + store integration
+- `src/stores/ChatStore.ts`: Zustand store
+  - `conversations`, `threads: Record<conversationId, ChatMessage[]>`
+  - `threadStatus`, `pendingCount`
+  - `loadConversations()`, `loadThread(id)`
+  - `send({ conversationId, text, clientMsgId? })`: optimistic
+    append with `pending` status, replaces with server response on
+    success, marks `failed` on error
+  - `markThreadRead(id)`: marks conversation as read + sends
+    /chat/mark-read
+  - `reset()`: clear state
+- Realtime bridge: `useChatRealtimeSync()` hook subscribes to
+  `chat:message` and `chat:read` events from the SyncManager and
+  pipes them into the store. Also lazy-loads conversations on first
+  mount.
+- Shared UI components:
+  - `ChatBubble` (src/shared/components/ChatBubble.tsx):
+    outgoing/incoming alignment, theme-aware colors, status glyph
+    (clock/check/double-check/warning), clock timestamp, optional
+    sender name.
+  - `ChatInputBar` (src/shared/components/ChatInputBar.tsx):
+    multi-line text field, theme-aware input + send button, Enter
+    to send on web, ActivityIndicator-style sending state.
+  - `ConversationRow` (src/shared/components/ConversationRow.tsx):
+    avatar with online dot, display name, last message preview,
+    unread count badge, relative timestamp, Pressable.
+- `src/screens/ChatListScreen.tsx`:
+  - FlatList of conversations sorted by updatedAt desc
+  - Pull-to-refresh
+  - Empty / error / loading states
+  - Tap → ChatThreadScreen
+- `src/screens/ChatThreadScreen.tsx`:
+  - FlatList of messages (oldest → newest)
+  - KeyboardAvoidingView for input bar
+  - Auto-scroll to bottom on new messages
+  - Loads thread on mount
+  - Marks thread read on mount
+  - Sends via ChatStore.send (optimistic)
+  - Custom navigation header showing the other participant's name
+- `src/navigation/types.ts`: new shared module exporting
+  `RootStackParamList`, `MainStackParamList`, `AuthStackParamList`.
+- `src/navigation/AppNavigator.tsx`:
+  - Uses shared types
+  - MainStack now has Home / ChatList / ChatThread screens
+- `src/screens/HomeScreen.tsx`:
+  - Added Chat quick-link card showing total unread count + "Open"
+    button → navigates to ChatList
+
 ### Step M-7 (Push Notifications)
 - New dependency: `expo-notifications`, `expo-device`.
 - `src/api/notificationTypes.ts`: typed notification payload shapes for
