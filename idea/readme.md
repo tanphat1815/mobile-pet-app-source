@@ -21,6 +21,7 @@
 | [M-5](./step-M-5-realtime-sync.md) | Realtime Sync (WS) | **Done** (2026-08-30) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/21724bd) |
 | [M-6](./step-M-6-pet-stats-viewer.md) | Pet Stats Viewer | **Done** (2026-08-30) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/3d5896b) |
 | [M-7](./step-M-7-push-notifications.md) | Push Notifications | **Done** (2026-08-30) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/ccca11a) |
+| [M-8](./step-M-8-chat-screens.md) | Chat 1-1 screens | **Done** (2026-08-30) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/5b6bcd3) |
 | [M-2](./step-M-2-shared-ui-library.md) | Shared UI Library | Unreleased | - |
 | [M-3](./step-M-3-api-client-storage.md) | API Client + Storage | Unreleased | - |
 | [M-4](./step-M-4-auth-flow.md) | Auth Flow | Unreleased | - |
