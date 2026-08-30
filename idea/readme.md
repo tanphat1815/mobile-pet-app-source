@@ -19,6 +19,7 @@
 | [M-3](./step-M-3-api-client-storage.md) | API Client + Storage | **Done** (2026-08-30) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/4bd36a0) |
 | [M-4](./step-M-4-auth-flow.md) | Auth Flow (email OTP) | **Done** (2026-08-30) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/1b4b609) |
 | [M-5](./step-M-5-realtime-sync.md) | Realtime Sync (WS) | **Done** (2026-08-30) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/21724bd) |
+| [M-6](./step-M-6-pet-stats-viewer.md) | Pet Stats Viewer | **Done** (2026-08-30) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/3d5896b) |
 | [M-2](./step-M-2-shared-ui-library.md) | Shared UI Library | Unreleased | - |
 | [M-3](./step-M-3-api-client-storage.md) | API Client + Storage | Unreleased | - |
 | [M-4](./step-M-4-auth-flow.md) | Auth Flow | Unreleased | - |
