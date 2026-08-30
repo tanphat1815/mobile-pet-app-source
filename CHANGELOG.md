@@ -10,6 +10,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+### Step M-2 (Shared UI Library)
+- 7 Reanimated transition hooks in `src/shared/transitions/`:
+  - `useModalTransition` - fade + scale + translateY for modals
+  - `usePanelTransition` - bottom-up slide for panels/sheets
+  - `useDropdownTransition` - fade + scale + slide for dropdowns
+  - `usePopAnimation` - one-shot pop with overshoot for badges
+  - `useAvatarHover` - press-in scale, spring-out for avatars/buttons
+  - `useInputShake` - 4-oscillation shake for input errors
+  - `usePageTransition` - horizontal slide for onboarding pages
+- All hooks respect `useReducedMotion()` (durations collapse to ~1ms when on)
+- 8 shared components in `src/shared/components/`:
+  - `Button` (primary/secondary/danger/ghost variants, sm/md/lg sizes, loading state)
+  - `Card` (default/elevated/flat variants, configurable padding)
+  - `Toggle` (iOS-style switch with thumb slide + spring)
+  - `TextField` (label, error state, focus ring, shake on error)
+  - `Modal` (overlay + content, fade+scale, backdrop dismiss)
+  - `Panel` (bottom sheet, slide up, handle indicator)
+  - `Badge` (pill, count/label, pop animation, 4 variants)
+  - `BlurHeader` (translucent header with leading/trailing slots, fallback to solid bg)
+- `useReducedMotionDuration` helper hook
+- `ComponentGallery` screen as visual verification of all components + transitions
+
 ### Step M-1 (Scaffold + Theme Foundation)
 - Expo SDK 57 + React Native 0.86 + TypeScript scaffold
 - Apple HIG design tokens (`src/utils/theme.ts`): light + dark color schemes, typography, 4pt spacing grid, radius, shadows, easing, duration
