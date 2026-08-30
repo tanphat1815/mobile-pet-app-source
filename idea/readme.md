@@ -16,6 +16,7 @@
 | [M-0](./step-M-0-repo-bootstrap.md) | Repo Bootstrap | **Done** (2026-08-30) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/25711fa) |
 | [M-1](./step-M-1-scaffold.md) | Scaffold + Theme Foundation | **Done** (2026-08-30) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/1132454) |
 | [M-2](./step-M-2-shared-ui-library.md) | Shared UI Library | **Done** (2026-08-30) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/ce517c6) |
+| [M-3](./step-M-3-api-client-storage.md) | API Client + Storage | **Done** (2026-08-30) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/4bd36a0) |
 | [M-2](./step-M-2-shared-ui-library.md) | Shared UI Library | Unreleased | - |
 | [M-3](./step-M-3-api-client-storage.md) | API Client + Storage | Unreleased | - |
 | [M-4](./step-M-4-auth-flow.md) | Auth Flow | Unreleased | - |
