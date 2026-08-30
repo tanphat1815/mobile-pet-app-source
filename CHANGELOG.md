@@ -10,6 +10,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+### Step M-6 (Pet Stats Viewer)
+- `src/api/petTypes.ts`: Pet domain types (Pet, PetStats, PetMood,
+  PetAction), helper functions (xpForLevel, xpProgress, defaultEmoji),
+  and STAT_LABELS / STAT_RANGES constants.
+- `src/api/pet.ts`: Pet API module with `getPet()`, `performPetAction()`,
+  and `applyLocalPetAction()`. Includes a local mock state for
+  development so the UI is fully testable without a real backend.
+  Each action (feed / play / sleep / pet) has deterministic effects
+  on hunger, happiness, energy, xp, mood and triggers level-ups.
+- `src/stores/PetStore.ts`: Zustand store for the pet.
+  - `load()` - fetches pet via getPet()
+  - `performAction(action)` - optimistic update (apply locally), then
+    await server response, then merge authoritative state
+  - `applyRealtimeUpdate(stats?, mood?)` - applies server-pushed
+    realtime updates without a roundtrip
+  - `pendingActions: Set<PetAction>` - tracks which action buttons are
+    currently in-flight (used to disable the button + show spinner)
+  - `usePetRealtimeSync()` - hook that subscribes to `pet:update` and
+    `pet:mood` events from the SyncManager and pipes them into the
+    store automatically
+- `src/shared/components/StatBar.tsx`: Horizontal stat bar with
+  animated fill (Reanimated withTiming). Color shifts based on value
+  using theme tokens (success / warning / danger). Supports `inverse`
+  flag for stats where low = good (e.g. hunger).
+- `src/shared/components/LevelBar.tsx`: Level pill + XP progress bar.
+  Shows "LV 3" badge and "currentXp / nextThreshold XP" caption.
+- `src/shared/components/PetAvatar.tsx`: Large circular avatar with a
+  mood-colored ring. Emoji fallback when no avatarUrl is provided.
+  Subtle Reanimated wobble loop (skipped when reducedMotion is true).
+  Mood emoji badge in the bottom-right corner.
+- `src/shared/components/PetActionButton.tsx`: Square pressable card
+  for each pet action. Shows an ActivityIndicator while pending,
+  disabled state when no pet loaded.
+- HomeScreen update:
+  - Pet card with avatar + name + species + mood
+  - LevelBar for level/XP
+  - 3 StatBars for hunger / happiness / energy
+  - 2x2 grid of PetActionButtons (Feed / Play / Sleep / Pet)
+  - Pull-to-refresh via RefreshControl
+  - Compact session card below
+
 ### Step M-5 (Realtime Sync)
 - `src/api/syncTypes.ts`: Typed wire format for realtime messages.
   Includes envelope shape, server event types (pet:update, pet:mood,
