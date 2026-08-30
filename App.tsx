@@ -12,6 +12,7 @@ import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/
 import { StatusBar } from 'expo-status-bar';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { SyncLifecycle } from './src/stores/SyncLifecycle';
+import { NotificationLifecycle } from './src/stores/NotificationLifecycle';
 import { useTheme } from './src/utils/useTheme';
 
 function ThemedApp() {
@@ -46,7 +47,9 @@ function ThemedApp() {
     <NavigationContainer theme={navTheme}>
       <StatusBar style={theme.isDark ? 'light' : 'dark'} />
       <SyncLifecycle>
-        <AppNavigator />
+        <NotificationLifecycle>
+          <AppNavigator />
+        </NotificationLifecycle>
       </SyncLifecycle>
     </NavigationContainer>
   );

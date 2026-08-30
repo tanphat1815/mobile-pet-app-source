@@ -10,6 +10,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+### Step M-7 (Push Notifications)
+- New dependency: `expo-notifications`, `expo-device`.
+- `src/api/notificationTypes.ts`: typed notification payload shapes for
+  each category (pet, chat, friend, achievement, quest, pairing,
+  system). `PushToken` shape includes platform + app version.
+  Helpers: `categoryFromData`, `navigationTargetFromData`.
+- `src/api/NotificationService.ts` (singleton):
+  - `configure()`: sets foreground notification handler + Android
+    default channel.
+  - `requestPermissions()`: iOS + Android permission flow.
+  - `getPushToken()`: gets the Expo push token, persists to AsyncStorage
+    under StorageKeys.PushToken. Caches in memory. Returns null on
+    simulator/emulator. Web fallback synthesizes a token.
+  - `registerWithBackend(token)`: POSTs to `/notifications/register`
+    with the auth token. No-op on web.
+  - `on(type, listener)`: subscribe to 'received' (foreground) or
+    'tapped' (background/killed) events. Returns an unsubscribe fn.
+  - `scheduleLocal(title, body, data, secondsFromNow)`: triggers a
+    local notification (useful for testing on emulators).
+  - `dismissAll()`, `getBadgeCount()`, `setBadgeCount()`: convenience.
+  - `cleanup()`: detaches native listeners.
+  - All `expo-notifications` / `expo-device` requires are lazy so the
+    web bundle doesn't crash if the modules are unavailable.
+- `src/api/storage.ts`: added `StorageKeys.PushToken` and
+  `StorageKeys.LastNotification`.
+- `src/api/config.ts`: added `APP_VERSION` constant (used in push
+  token payloads).
+- `src/stores/NotificationStore.ts`: Zustand wrapper exposing
+  permission status, push token, registered flag, last received /
+  tapped notifications, badge count. Actions:
+  `requestPermissionsAndRegister`, `refreshBadge`, `dismissAll`,
+  `scheduleTest`, `clearLastTapped`.
+- Hooks: `useNotificationListener(type, fn)` for typed event
+  subscriptions, `useNotificationStoreBridge()` auto-bridge that pipes
+  received/tapped events into store state.
+- `src/stores/NotificationLifecycle.tsx`: Mount inside <SyncLifecycle>.
+  Configures on mount, auto-registers on auth, cleans up on logout.
+- `src/shared/components/NotificationCard.tsx`: Compact card showing
+  permission status, push token info, badge count, last received
+  notification title. Buttons: Enable/Register, Test push (schedules
+  a local notification 2s in the future), Dismiss all.
+- `App.tsx`: wraps AppNavigator in <NotificationLifecycle> nested
+  inside <SyncLifecycle>.
+- `HomeScreen`: shows NotificationCard below the session card.
+- `app.json`: added `expo-notifications` plugin (color #007AFF), iOS
+  `UIBackgroundModes: ["remote-notification"]`, Android permissions
+  `NOTIFICATIONS` + `POST_NOTIFICATIONS`.
+
 ### Step M-6 (Pet Stats Viewer)
 - `src/api/petTypes.ts`: Pet domain types (Pet, PetStats, PetMood,
   PetAction), helper functions (xpForLevel, xpProgress, defaultEmoji),

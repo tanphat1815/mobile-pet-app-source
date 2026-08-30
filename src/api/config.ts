@@ -51,3 +51,7 @@ export const IS_DEV: boolean = process.env.NODE_ENV !== 'production';
 
 // Platform tag used in user-agent / device register payloads
 export const PLATFORM_TAG = Platform.OS; // 'ios' | 'android' | 'web'
+
+// App version (Step M-7: used in push token payloads so backend can
+// version-stamp devices)
+export const APP_VERSION = '0.1.0';

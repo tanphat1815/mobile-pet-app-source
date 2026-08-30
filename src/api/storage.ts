@@ -28,6 +28,8 @@ export const StorageKeys = {
   ReducedMotionEnabled: 'settings.reduced_motion',
   DeviceId: 'device.id',
   OnboardingComplete: 'onboarding.complete',
+  PushToken: 'notifications.push_token',
+  LastNotification: 'notifications.last',
 } as const;
 
 export type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys];

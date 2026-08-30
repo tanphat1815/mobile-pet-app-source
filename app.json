@@ -7,10 +7,21 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#007AFF"
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mobilepet.app",
-      "userInterfaceStyle": "automatic"
+      "userInterfaceStyle": "automatic",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +31,8 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.mobilepet.app",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["NOTIFICATIONS", "POST_NOTIFICATIONS"]
     },
     "web": {
       "favicon": "./assets/favicon.png",

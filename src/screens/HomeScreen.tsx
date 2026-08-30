@@ -23,6 +23,7 @@ import { LevelBar } from '../shared/components/LevelBar';
 import { PetAvatar } from '../shared/components/PetAvatar';
 import { PetActionButton } from '../shared/components/PetActionButton';
 import { SyncStatusBadge } from '../shared/components/SyncStatusBadge';
+import { NotificationCard } from '../shared/components/NotificationCard';
 import type { PetAction } from '../api/petTypes';
 
 const PET_ACTIONS: { action: PetAction; label: string; emoji: string }[] = [
@@ -230,6 +231,8 @@ export function HomeScreen() {
         <InfoRow label="Events" value={String(eventsReceived)} theme={theme} />
         <InfoRow label="Last event" value={lastEventText} theme={theme} mono />
       </Card>
+
+      <NotificationCard />
 
       <View style={{ height: theme.spacing.xl }} />
 
