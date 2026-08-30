@@ -10,6 +10,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+### Step M-9 (Friends List with online status)
+- `src/api/friendTypes.ts`: Friend, FriendRequest, FriendSuggestion,
+  PresenceStatus, FriendStatus. Helpers: `byPresenceThenName`,
+  `byRequestOrder`, `formatLastSeen`.
+- `src/api/friends.ts`: REST API with local mock state (5 friends:
+  Alice/online, Carol/online, Dave/away, Bob/Emma/offline; 3 requests
+  with directions and messages; 3 suggestions).
+  - `listFriends()`, `listFriendRequests()`, `listFriendSuggestions()`
+  - `searchFriends(q)`, `sendFriendRequest(userId, message?)`,
+    `decideFriendRequest(requestId, decision)`, `cancelFriendRequest()`,
+    `removeFriend(userId)`
+  - Local helpers: `injectIncomingRequest`, `setFriendPresence`,
+    `findFriend` for realtime integration
+- `src/stores/FriendStore.ts`: Zustand store with friends,
+  requests, suggestions, search state, decidingRequestIds.
+  Actions: `loadAll()`, `loadFriends/Requests/Suggestions`,
+  `search(q)`, `sendRequest`, `decideRequest`, `cancelRequest`,
+  `removeFriend`, `reset`.
+- Realtime bridge: `useFriendRealtimeSync()` hook subscribes to
+  `friend:status` and `friend:request` events from the SyncManager.
+  Lazy-loads on first mount.
+- Shared UI components:
+  - `FriendRow` (src/shared/components/FriendRow.tsx):
+    Avatar with animated press-in scale (useAvatarHover), online /
+    away dot, name + Lv badge, status message or last-seen, optional
+    `right` slot for custom trailing content.
+  - `FriendRequestRow`
+    (src/shared/components/FriendRequestRow.tsx): Avatar + name +
+    optional message preview + Accept/Decline (incoming) or Cancel
+    (outgoing). Animated press-in.
+  - `SuggestionRow` (src/shared/components/SuggestionRow.tsx):
+    Avatar + name + mutual friends + reason + Add/Requested button.
+  - `FriendSearchBar` (src/shared/components/FriendSearchBar.tsx):
+    Search field with icon and clear button, theme-aware focus ring.
+  - `SegmentedTabs` (src/shared/components/SegmentedTabs.tsx):
+    Pill-style segmented control with a sliding Reanimated indicator.
+    Badge-aware (e.g. "Requests 2"). Respects reduced-motion.
+- `src/screens/FriendsScreen.tsx`: Three tabs (Friends / Requests /
+  Suggestions). Pull-to-refresh. Long-press on a friend to remove.
+  Tap a friend to start a chat (maps userId -> existing conversation
+  id or opens ChatList). Suggestions tab: debounced search.
+- `src/navigation/AppNavigator.tsx`: MainStack now includes Friends
+  screen.
+- `src/screens/HomeScreen.tsx`: Added Friends quick-link card
+  showing online count + pending requests count + Open button.
+- `src/shared/components/Badge.tsx`: Added `variant: 'neutral'`
+  (uses theme.colors.border + theme.colors.text) for the level
+  badges.
+
 ### Step M-8 (Chat 1-1 screens)
 - `src/api/chatTypes.ts`: Chat domain types
   - `ChatMessage { id, conversationId, fromUserId, toUserId, kind,

@@ -22,6 +22,7 @@ import { AuthNavigator } from './AuthNavigator';
 import { HomeScreen } from '../screens/HomeScreen';
 import { ChatListScreen } from '../screens/ChatListScreen';
 import { ChatThreadScreen } from '../screens/ChatThreadScreen';
+import { FriendsScreen } from '../screens/FriendsScreen';
 import type { RootStackParamList, MainStackParamList } from './types';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -83,6 +84,11 @@ function MainNavigator() {
       <MainStack.Screen
         name="ChatThread"
         component={ChatThreadScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MainStack.Screen
+        name="Friends"
+        component={FriendsScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </MainStack.Navigator>

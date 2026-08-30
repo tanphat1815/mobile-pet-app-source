@@ -14,7 +14,7 @@ import { usePopAnimation } from '../transitions/usePopAnimation';
 interface BadgeProps {
   count?: number;
   label?: string;
-  variant?: 'primary' | 'success' | 'danger' | 'warning';
+  variant?: 'primary' | 'success' | 'danger' | 'warning' | 'neutral';
   size?: 'sm' | 'md';
   style?: ViewStyle;
   autoAnimate?: boolean;
@@ -47,6 +47,8 @@ export function Badge({
         return { bg: theme.colors.danger, text: theme.colors.textInverse };
       case 'warning':
         return { bg: theme.colors.warning, text: theme.colors.textInverse };
+      case 'neutral':
+        return { bg: theme.colors.border, text: theme.colors.text };
     }
   })();
 

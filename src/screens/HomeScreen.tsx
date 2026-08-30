@@ -16,6 +16,7 @@ import { useAuthStore } from '../stores/AuthStore';
 import { useSyncStore } from '../stores/SyncStore';
 import { usePetStore, usePetRealtimeSync } from '../stores/PetStore';
 import { useChatStore } from '../stores/ChatStore';
+import { useFriendStore } from '../stores/FriendStore';
 import { Button } from '../shared/components/Button';
 import { Card } from '../shared/components/Card';
 import { Badge } from '../shared/components/Badge';
@@ -55,6 +56,11 @@ export function HomeScreen({ navigation }: Props) {
 
   const conversations = useChatStore((s) => s.conversations);
   const unreadTotal = conversations.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
+
+  const friends = useFriendStore((s) => s.friends);
+  const friendRequests = useFriendStore((s) => s.requests);
+  const onlineFriends = friends.filter((f) => f.presence === 'online').length;
+  const incomingFriendRequests = friendRequests.filter((r) => r.direction === 'incoming').length;
 
   // Subscribe to pet realtime updates
   usePetRealtimeSync();
@@ -270,6 +276,38 @@ export function HomeScreen({ navigation }: Props) {
           <Button
             title="Open"
             onPress={() => navigation.navigate('ChatList')}
+            variant="primary"
+            size="sm"
+          />
+        </View>
+      </Card>
+
+      {/* Friends quick-link */}
+      <Card style={styles.section}>
+        <View style={styles.chatLinkRow}>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                color: theme.colors.text,
+                fontSize: theme.typography.size.headline,
+                fontWeight: '600',
+              }}
+            >
+              Friends
+            </Text>
+            <Text
+              style={{
+                color: theme.colors.textSecondary,
+                fontSize: theme.typography.size.subhead,
+                marginTop: 2,
+              }}
+            >
+              {onlineFriends} online • {incomingFriendRequests} pending request{incomingFriendRequests === 1 ? '' : 's'}
+            </Text>
+          </View>
+          <Button
+            title="Open"
+            onPress={() => navigation.navigate('Friends')}
             variant="primary"
             size="sm"
           />
