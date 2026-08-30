@@ -1,50 +1,109 @@
 /**
  * App Navigator
  *
- * Stack-based navigation using React Navigation Native Stack.
- * Routes:
- * - Home (placeholder) -> will be replaced by HomeScreen in Step M-6
- * - Auth (placeholder) -> will be replaced by AuthScreens in Step M-4
+ * Root-level navigator that shows either the Auth stack or the main app
+ * based on the authentication state. The auth state is restored from
+ * AsyncStorage on app launch.
+ *
+ * Flow:
+ *   App mounts → AuthStore.restoreSession() → 'restoring'
+ *   → 'authenticated' → MainStack (Home)
+ *   → 'unauthenticated' → AuthStack (Login)
+ *
+ * When the user logs out, the navigator switches back to the Auth stack.
  */
 
-import React from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import React, { useEffect } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import {
+  createNativeStackNavigator,
+  NativeStackScreenProps,
+} from '@react-navigation/native-stack';
 import { useTheme } from '../utils/useTheme';
-import { HomePlaceholderScreen } from '../screens/HomePlaceholderScreen';
-import { AuthPlaceholderScreen } from '../screens/AuthPlaceholderScreen';
+import { useAuthStore } from '../stores/AuthStore';
+import { AuthNavigator } from './AuthNavigator';
+import { HomeScreen } from '../screens/HomeScreen';
 
 export type RootStackParamList = {
-  Home: undefined;
   Auth: undefined;
+  Main: undefined;
 };
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const RootStack = createNativeStackNavigator<RootStackParamList>();
 
-export function AppNavigator() {
+function AuthRestorer({ children }: { children: React.ReactNode }) {
+  const restoreSession = useAuthStore((s) => s.restoreSession);
+
+  useEffect(() => {
+    restoreSession();
+  }, [restoreSession]);
+
+  return <>{children}</>;
+}
+
+function RootNavigator() {
   const theme = useTheme();
+  const status = useAuthStore((s) => s.status);
+
+  const isRestoring = status === 'restoring';
+
+  if (isRestoring) {
+    return (
+      <View style={[styles.center, { backgroundColor: theme.colors.bg }]}>
+        <ActivityIndicator size="large" color={theme.colors.accent} />
+      </View>
+    );
+  }
 
   return (
-    <Stack.Navigator
-      initialRouteName="Home"
+    <RootStack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: theme.colors.bg },
-        headerTintColor: theme.colors.text,
-        headerTitleStyle: {
-          fontWeight: theme.typography.weight.semibold,
-        },
+        headerShown: false,
         contentStyle: { backgroundColor: theme.colors.bg },
       }}
     >
-      <Stack.Screen
-        name="Home"
-        component={HomePlaceholderScreen}
-        options={{ title: 'Mobile Pet' }}
-      />
-      <Stack.Screen
-        name="Auth"
-        component={AuthPlaceholderScreen}
-        options={{ title: 'Sign In' }}
-      />
-    </Stack.Navigator>
+      {status === 'authenticated' ? (
+        <RootStack.Screen name="Main" component={MainNavigator} />
+      ) : (
+        <RootStack.Screen name="Auth" component={AuthNavigator} />
+      )}
+    </RootStack.Navigator>
   );
 }
+
+type MainStackParamList = {
+  Home: undefined;
+};
+
+const MainStack = createNativeStackNavigator<MainStackParamList>();
+
+function MainNavigator() {
+  const theme = useTheme();
+
+  return (
+    <MainStack.Navigator
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: theme.colors.bg },
+      }}
+    >
+      <MainStack.Screen name="Home" component={HomeScreen} />
+    </MainStack.Navigator>
+  );
+}
+
+export function AppNavigator() {
+  return (
+    <AuthRestorer>
+      <RootNavigator />
+    </AuthRestorer>
+  );
+}
+
+const styles = StyleSheet.create({
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

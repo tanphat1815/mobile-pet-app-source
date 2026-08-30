@@ -115,6 +115,10 @@ export async function setStoredToken(token: string): Promise<void> {
   await storage.set(StorageKeys.AuthToken, token);
 }
 
+export async function setStoredRefreshToken(refreshToken: string): Promise<void> {
+  await storage.set(StorageKeys.RefreshToken, refreshToken);
+}
+
 export async function clearStoredAuth(): Promise<void> {
   await Promise.all([
     storage.delete(StorageKeys.AuthToken),

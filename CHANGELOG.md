@@ -10,6 +10,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+### Step M-4 (Auth Flow)
+- `src/api/auth.ts`: Auth API module with `sendOtp`, `verifyOtp`, `logoutApi`.
+  Dev fallback returns mock sessions so the flow is testable without a real
+  backend (network errors on httpbin resolve to a mock JWT). Once the Worker
+  is deployed, remove the fallback blocks and point at the real endpoints.
+- `src/stores/AuthStore.ts`: Zustand store managing the auth state machine:
+  restoring → (authenticated | unauthenticated) → sending → otp_sent →
+  verifying → authenticated. Persists user + tokens to AsyncStorage on
+  login, clears them on logout or 401.
+- `src/screens/LoginScreen.tsx`: Email input with regex validation,
+  calls `AuthStore.sendOtp()`, auto-replaces to Verify on success.
+  KeyboardAvoidingView for proper keyboard handling on iOS/Android.
+- `src/screens/VerifyScreen.tsx`: 6-digit OTP input with auto-focus on
+  mount, digit-box UI (focus ring, error ring), auto-submit when 6 digits
+  entered, resend countdown timer (60s), calls `AuthStore.verifyOtp()`.
+  `useInputShake` triggers shake animation on error.
+- `src/screens/HomeScreen.tsx`: Post-auth landing with user info card,
+  auth state debug info, and logout button.
+- `src/navigation/AuthNavigator.tsx`: Auth stack (Login → Verify).
+- `src/navigation/AppNavigator.tsx`: Root navigator that conditionally
+  renders Auth stack (unauthenticated) or Main stack (authenticated).
+  AuthRestorer component calls `restoreSession()` on mount. Shows a
+  centered ActivityIndicator while restoring.
+- Deleted: HomePlaceholderScreen, AuthPlaceholderScreen (replaced by real screens).
+
 ### Step M-3 (API Client + Storage)
 - `src/api/config.ts`: API_BASE_URL, WS_URL, timeouts, reconnect tuning.
   Reads EXPO_PUBLIC_API_BASE_URL / EXPO_PUBLIC_WS_URL env overrides.
