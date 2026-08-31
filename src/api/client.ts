@@ -17,6 +17,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from 'axios';
 import { API_BASE_URL, API_TIMEOUT_MS } from './config';
+import { RUNTIME_API_BASE_URL } from '../utils/runtimeConfig';
 import { getStoredToken, clearStoredAuth, getStoredUser } from './storage';
 
 // ============================================================================
@@ -43,7 +44,7 @@ export interface ApiErrorPayload {
 // ============================================================================
 
 const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: RUNTIME_API_BASE_URL ?? API_BASE_URL,
   timeout: API_TIMEOUT_MS,
   headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 });

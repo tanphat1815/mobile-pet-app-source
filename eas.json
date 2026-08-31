@@ -1,0 +1,98 @@
+{
+  "cli": {
+    "version": ">= 14.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "base": {
+      "node": "20.11.1",
+      "yarn": {
+        "version": "1.22.22",
+        "npmCompatible": true
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://httpbin.org",
+        "EXPO_PUBLIC_WS_URL": "wss://ws.postman-echo.com/raw",
+        "EXPO_PUBLIC_ENV": "staging"
+      },
+      "android": {
+        "gradleVersion": "8.10.2",
+        "image": "latest",
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "image": "latest",
+        "simulator": false,
+        "bundleIdentifier": "com.mobilepet.app",
+        "enterpriseProvisioning": "never"
+      }
+    },
+    "development": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "http://localhost:8787",
+        "EXPO_PUBLIC_WS_URL": "ws://localhost:8787/ws",
+        "EXPO_PUBLIC_ENV": "development"
+      },
+      "simulator": {
+        "distribution": "internal",
+        "ios": {
+          "simulator": true
+        }
+      }
+    },
+    "preview": {
+      "extends": "base",
+      "distribution": "internal",
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://staging.mobilepet.app/api",
+        "EXPO_PUBLIC_WS_URL": "wss://staging.mobilepet.app/ws",
+        "EXPO_PUBLIC_ENV": "staging"
+      }
+    },
+    "production": {
+      "extends": "base",
+      "autoIncrement": true,
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.mobilepet.app",
+        "EXPO_PUBLIC_WS_URL": "wss://api.mobilepet.app/ws",
+        "EXPO_PUBLIC_ENV": "production"
+      }
+    },
+    "simulator": {
+      "extends": "development",
+      "ios": {
+        "simulator": true
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./secrets/play-store.json",
+        "track": "internal",
+        "releaseStatus": "draft",
+        "changesNotSentForReview": true
+      },
+      "ios": {
+        "ascAppIdentifier": "000000000",
+        "appleTeamId": "0000000000"
+      }
+    },
+    "preview": {
+      "android": {
+        "serviceAccountKeyPath": "./secrets/play-store.json",
+        "track": "internal"
+      },
+      "ios": {
+        "ascAppIdentifier": "000000000",
+        "appleTeamId": "0000000000"
+      }
+    }
+  }
+}

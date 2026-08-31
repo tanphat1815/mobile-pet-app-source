@@ -24,6 +24,7 @@ import {
   SyncEventType,
 } from './syncTypes';
 import { WS_URL, WS_RECONNECT, PLATFORM_TAG, IS_DEV } from './config';
+import { RUNTIME_WS_URL } from '../utils/runtimeConfig';
 
 // ============================================================================
 // Types
@@ -73,7 +74,7 @@ export class SyncManager {
   private onLog?: (message: string, data?: unknown) => void;
 
   constructor(options: SyncManagerOptions) {
-    this.url = options.url ?? WS_URL;
+    this.url = options.url ?? RUNTIME_WS_URL ?? WS_URL;
     this.clientId = options.clientId;
     this.getToken = options.getToken;
     this.onStatusChange = options.onStatusChange;

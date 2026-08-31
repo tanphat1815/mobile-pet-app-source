@@ -5,7 +5,7 @@
  * NavigationContainer (required for React Navigation).
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
@@ -14,9 +14,14 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { SyncLifecycle } from './src/stores/SyncLifecycle';
 import { NotificationLifecycle } from './src/stores/NotificationLifecycle';
 import { useTheme } from './src/utils/useTheme';
+import { logRuntimeConfig } from './src/utils/runtimeConfig';
 
 function ThemedApp() {
   const theme = useTheme();
+
+  useEffect(() => {
+    logRuntimeConfig();
+  }, []);
 
   // Build a React Navigation theme that matches our design tokens
   const navTheme = theme.isDark
