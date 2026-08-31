@@ -17,8 +17,6 @@
  * code.
  */
 
-import { Platform } from 'react-native';
-
 export type AppEnv = 'development' | 'staging' | 'production' | 'unknown';
 
 function readString(key: string): string | undefined {
@@ -91,9 +89,17 @@ export const RUNTIME_APP_VARIANT: 'ios' | 'android' | 'web' | 'unknown' =
   ((): 'ios' | 'android' | 'web' | 'unknown' => {
     const v = readString('EXPO_PUBLIC_APP_VARIANT');
     if (v === 'ios' || v === 'android' || v === 'web') return v;
-    if (Platform.OS === 'ios') return 'ios';
-    if (Platform.OS === 'android') return 'android';
-    if (Platform.OS === 'web') return 'web';
+    // Defer the Platform import so this module can be parsed by
+    // bundlers without a full React Native install (e.g. Vitest).
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { Platform } = require('react-native');
+      if (Platform?.OS === 'ios') return 'ios';
+      if (Platform?.OS === 'android') return 'android';
+      if (Platform?.OS === 'web') return 'web';
+    } catch {
+      /* not available in this runtime */
+    }
     return 'unknown';
   })();
 
