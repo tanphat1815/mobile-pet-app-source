@@ -10,6 +10,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+### Step M-12 (Biometric login + haptic feedback + Onboarding slides)
+- Dependencies (package.json):
+  - expo-local-authentication ~57.0.2
+  - expo-haptics ~57.0.2
+- Permissions (app.json):
+  - iOS: NSFaceIDUsageDescription
+  - Android: USE_BIOMETRIC, USE_FINGERPRINT
+- `src/utils/haptics.ts`: typed haptic helpers
+  - Capability probe (no-op on web, no-op when Reduce Motion is on)
+  - `hapticLight`, `hapticMedium`, `hapticHeavy`,
+    `hapticSuccess`, `hapticWarning`, `hapticError`,
+    `hapticSelection`
+  - Typed dispatcher `haptic(HapticStyleName)`
+  - `initHapticsAccessibility()` subscribes to
+    `reduceMotionChanged` (called once in App.tsx)
+- `src/api/biometricTypes.ts`: typed domain
+  - `BiometryType = FaceID | TouchID | Fingerprint | Iris | OpticID
+  - | None`
+  - `BiometricLevel = none | weak | strong`
+  - `BiometricCapability { isAvailable, biometryType, level,
+    isEnrolled }`
+  - `BiometricAuthResult { success, cancelled, error? }`
+- `src/api/biometric.ts`: wrapper over `expo-local-authentication`
+  - `getBiometricCapability()` (cached) - probes hardware,
+    enrollment, supported types, security level
+  - `authenticateBiometric(reason?)` - returns typed result
+    (success / cancelled / error)
+  - `biometryLabel`, `biometryIcon` helpers
+  - `invalidateBiometricCapability()` to re-probe after settings
+- `src/hooks/useBiometricAuth.ts`: React hook
+  - `{ capability, authenticating, lastResult, refresh,
+    authenticate }`
+  - Auto-probes on mount; plays success/error haptic by default
+  - Stable callbacks via internal ref
+- Auth store updates (src/stores/AuthStore.ts):
+  - New fields: `biometricEnabled`, `onboardingComplete`
+  - New actions: `setBiometricEnabledPreference(enabled)`,
+    `completeOnboarding()`
+  - `restoreSession()` reads both flags from AsyncStorage in
+    parallel with the token + user lookup
+- Storage helpers (src/api/storage.ts):
+  - `getOnboardingComplete()`, `setOnboardingComplete(bool)`
+    (the existing `BiometricEnabled` helpers were already in
+    place from Step M-3)
+- Screens:
+  - `BiometricLoginScreen`
+    (src/screens/BiometricLoginScreen.tsx): shown on launch when
+    // stored token + biometricEnabled. Auto-prompts the system
+    biometric API on mount. Big circular biometric button with a
+    pulse animation (Reanimated `withRepeat`), avatar circle,
+    retry on tap, "Use password instead" fallback. Handles
+    capability-not-available case gracefully.
+  - `OnboardingScreen`
+    (src/screens/OnboardingScreen.tsx): 6-slide horizontal
+    FlatList carousel (Welcome / Feed / Play / Chat / Pair /
+    Ready) with `usePageTransition` for soft entry, dot
+    pagination that interpolates color + scale + opacity based
+    on scroll position, dynamic CTA per slide, top-right Skip.
+    Completes by writing `OnboardingComplete=true` to storage
+    via `completeOnboarding()`.
+- Navigation refactor (src/navigation/AppNavigator.tsx):
+  - RootStack now wraps a `PhasePicker` that decides between
+    `onboarding` / `biometric` / `main` / `auth` based on
+    `onboardingComplete`, `biometricEnabled`, and `status`.
+  - First-launch flow: Onboarding -> Login -> OTP -> optional
+    Alert "Enable biometric?" -> MainStack.
+  - Returning-launch flow: Biometric prompt (if enabled) ->
+    MainStack, with "Use password instead" to drop into the
+    AuthStack.
+  - Calls `initHapticsAccessibility()` on app boot so the
+    reduce-motion preference is honored throughout the session.
+  - Detects the first `unauthenticated -> authenticated`
+    transition and shows a one-time Alert offering to enable
+    biometric login (skipped if capability is not available).
+
 ### Step M-11 (Achievements + Quests viewer, read-only)
 - `src/api/achievementTypes.ts`: Achievement + Quest domain types
   - `Achievement { id, title, description, category, tier,

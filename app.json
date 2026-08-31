@@ -20,7 +20,8 @@
       "bundleIdentifier": "com.mobilepet.app",
       "userInterfaceStyle": "automatic",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": ["remote-notification"],
+        "NSFaceIDUsageDescription": "Use Face ID to sign in to Mobile Pet."
       }
     },
     "android": {
@@ -32,7 +33,7 @@
       },
       "package": "com.mobilepet.app",
       "predictiveBackGestureEnabled": false,
-      "permissions": ["NOTIFICATIONS", "POST_NOTIFICATIONS"]
+      "permissions": ["NOTIFICATIONS", "POST_NOTIFICATIONS", "USE_BIOMETRIC", "USE_FINGERPRINT"]
     },
     "web": {
       "favicon": "./assets/favicon.png",

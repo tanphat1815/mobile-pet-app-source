@@ -32,6 +32,10 @@ import {
   getStoredUser,
   setStoredUser,
   clearStoredAuth,
+  getBiometricEnabled,
+  setBiometricEnabled,
+  getOnboardingComplete,
+  setOnboardingComplete,
 } from '../api/storage';
 import { getApiError } from '../api/client';
 
@@ -53,6 +57,10 @@ export interface AuthState {
   user: AuthUser | null;
   email: string;
   error: string | null;
+  /** Whether the user has enabled biometric login for future launches. */
+  biometricEnabled: boolean;
+  /** Whether the user has finished the onboarding flow. */
+  onboardingComplete: boolean;
 
   // Actions
   restoreSession: () => Promise<void>;
@@ -60,6 +68,10 @@ export interface AuthState {
   verifyOtp: (code: string) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
+  /** Persist the user's choice to enable / disable biometric login. */
+  setBiometricEnabledPreference: (enabled: boolean) => Promise<void>;
+  /** Persist that the user has finished onboarding. */
+  completeOnboarding: () => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -71,6 +83,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   email: '',
   error: null,
+  biometricEnabled: false,
+  onboardingComplete: false,
 
   // ------------------------------------------------------------------
   // restoreSession
@@ -80,18 +94,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   restoreSession: async () => {
     try {
       const token = await getStoredToken();
+      const [bio, onb] = await Promise.all([
+        getBiometricEnabled(),
+        getOnboardingComplete(),
+      ]);
       if (!token) {
-        set({ status: 'unauthenticated', user: null, error: null });
+        set({
+          status: 'unauthenticated',
+          user: null,
+          error: null,
+          biometricEnabled: bio,
+          onboardingComplete: onb,
+        });
         return;
       }
       const user = await getStoredUser();
-      if (user) {
-        set({ status: 'authenticated', user, error: null });
-      } else {
-        // Token present but user data missing: re-fetch user profile here
-        // once a /me endpoint exists on the backend.
-        set({ status: 'authenticated', user: null, error: null });
-      }
+      set({
+        status: 'authenticated',
+        user: user ?? null,
+        error: null,
+        biometricEnabled: bio,
+        onboardingComplete: onb,
+      });
     } catch {
       await clearStoredAuth();
       set({ status: 'unauthenticated', user: null, error: null });
@@ -142,6 +166,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // clearError
   // ------------------------------------------------------------------
   clearError: () => set({ error: null }),
+
+  // ------------------------------------------------------------------
+  // setBiometricEnabledPreference
+  // Persists the user's preference so the next launch can decide
+  // whether to offer the biometric prompt.
+  // ------------------------------------------------------------------
+  setBiometricEnabledPreference: async (enabled: boolean) => {
+    await setBiometricEnabled(enabled);
+    set({ biometricEnabled: enabled });
+  },
+
+  // ------------------------------------------------------------------
+  // completeOnboarding
+  // ------------------------------------------------------------------
+  completeOnboarding: async () => {
+    await setOnboardingComplete(true);
+    set({ onboardingComplete: true });
+  },
 }));
 
 // ---------------------------------------------------------------------------

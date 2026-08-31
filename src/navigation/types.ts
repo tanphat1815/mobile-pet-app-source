@@ -10,6 +10,7 @@
 export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
+  Phase: undefined;
 };
 
 export type MainStackParamList = {

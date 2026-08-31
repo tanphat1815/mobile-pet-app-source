@@ -170,3 +170,12 @@ export async function getBiometricEnabled(): Promise<boolean> {
 export async function setBiometricEnabled(enabled: boolean): Promise<void> {
   await storage.set(StorageKeys.BiometricEnabled, String(enabled));
 }
+
+export async function getOnboardingComplete(): Promise<boolean> {
+  const value = await storage.getString(StorageKeys.OnboardingComplete);
+  return value === 'true';
+}
+
+export async function setOnboardingComplete(complete: boolean): Promise<void> {
+  await storage.set(StorageKeys.OnboardingComplete, String(complete));
+}

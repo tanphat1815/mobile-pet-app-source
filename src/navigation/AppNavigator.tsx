@@ -11,8 +11,8 @@
  *   → 'unauthenticated' → AuthStack (Login)
  */
 
-import React, { useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import {
   createNativeStackNavigator,
 } from '@react-navigation/native-stack';
@@ -26,34 +26,130 @@ import { FriendsScreen } from '../screens/FriendsScreen';
 import { PairingScreen } from '../screens/PairingScreen';
 import { AchievementsScreen } from '../screens/AchievementsScreen';
 import { QuestsScreen } from '../screens/QuestsScreen';
+import { OnboardingScreen } from '../screens/OnboardingScreen';
+import { BiometricLoginScreen } from '../screens/BiometricLoginScreen';
+import { initHapticsAccessibility, hapticSuccess } from '../utils/haptics';
+import { getBiometricCapability, biometryLabel } from '../api/biometric';
 import type { RootStackParamList, MainStackParamList } from './types';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const MainStack = createNativeStackNavigator<MainStackParamList>();
 
+/**
+ * Boot phase after restoreSession() resolves.
+ *   - `onboarding`      user has not finished onboarding yet
+ *   - `biometric`       stored token + biometricEnabled -> prompt bio
+ *   - `main`            authenticated -> MainStack
+ *   - `auth`            no token -> AuthStack
+ */
+type BootPhase = 'onboarding' | 'biometric' | 'main' | 'auth';
+
 function AuthRestorer({ children }: { children: React.ReactNode }) {
   const restoreSession = useAuthStore((s) => s.restoreSession);
-
   useEffect(() => {
     restoreSession();
+    const unsub = initHapticsAccessibility();
+    return () => unsub();
   }, [restoreSession]);
-
   return <>{children}</>;
 }
 
-function RootNavigator() {
-  const theme = useTheme();
+function PhasePicker() {
   const status = useAuthStore((s) => s.status);
+  const user = useAuthStore((s) => s.user);
+  const biometricEnabled = useAuthStore((s) => s.biometricEnabled);
+  const onboardingComplete = useAuthStore((s) => s.onboardingComplete);
+  const setBiometricEnabledPreference = useAuthStore(
+    (s) => s.setBiometricEnabledPreference
+  );
+  const theme = useTheme();
 
-  const isRestoring = status === 'restoring';
+  // Hold an in-screen phase so the user can fall back from biometric
+  // to the password flow without bouncing the navigator tree.
+  const [phaseOverride, setPhaseOverride] = useState<BootPhase | null>(null);
 
-  if (isRestoring) {
+  // Detect the very first transition into 'authenticated' from the
+  // OTP flow so we can offer to enable biometric login.
+  const wasAuthedRef = useRef(status === 'authenticated');
+  useEffect(() => {
+    const nowAuthed = status === 'authenticated';
+    if (nowAuthed && !wasAuthedRef.current && !biometricEnabled) {
+      (async () => {
+        const cap = await getBiometricCapability();
+        if (!cap.isAvailable) {
+          wasAuthedRef.current = nowAuthed;
+          return;
+        }
+        Alert.alert(
+          `Use ${biometryLabel(cap.biometryType)} next time?`,
+          'Enable biometric login so you can skip the verification code on this device.',
+          [
+            {
+              text: 'Not now',
+              style: 'cancel',
+              onPress: () => {
+                wasAuthedRef.current = nowAuthed;
+              },
+            },
+            {
+              text: 'Enable',
+              onPress: async () => {
+                await setBiometricEnabledPreference(true);
+                hapticSuccess();
+                wasAuthedRef.current = nowAuthed;
+              },
+            },
+          ]
+        );
+      })();
+    } else {
+      wasAuthedRef.current = nowAuthed;
+    }
+  }, [status, biometricEnabled, setBiometricEnabledPreference]);
+
+  if (status === 'restoring') {
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.bg }]}>
         <ActivityIndicator size="large" color={theme.colors.accent} />
       </View>
     );
   }
+
+  let phase: BootPhase;
+  if (!onboardingComplete) phase = 'onboarding';
+  else if (status === 'authenticated' && biometricEnabled && !phaseOverride)
+    phase = 'biometric';
+  else if (status === 'authenticated') phase = 'main';
+  else phase = 'auth';
+
+  switch (phase) {
+    case 'onboarding':
+      return (
+        <OnboardingScreen
+          onDone={() => useAuthStore.getState().completeOnboarding()}
+        />
+      );
+    case 'biometric':
+      return (
+        <BiometricLoginScreen
+          onAuthenticated={() => {
+            // Status is already 'authenticated' since we have a token.
+            // Setting the override to 'main' drops us in.
+            setPhaseOverride('main');
+          }}
+          onUsePassword={() => setPhaseOverride('auth')}
+        />
+      );
+    case 'main':
+      return <MainNavigator />;
+    case 'auth':
+    default:
+      return <AuthNavigator />;
+  }
+}
+
+function RootNavigator() {
+  const theme = useTheme();
 
   return (
     <RootStack.Navigator
@@ -62,11 +158,7 @@ function RootNavigator() {
         contentStyle: { backgroundColor: theme.colors.bg },
       }}
     >
-      {status === 'authenticated' ? (
-        <RootStack.Screen name="Main" component={MainNavigator} />
-      ) : (
-        <RootStack.Screen name="Auth" component={AuthNavigator} />
-      )}
+      <RootStack.Screen name="Phase" component={PhasePicker} />
     </RootStack.Navigator>
   );
 }
