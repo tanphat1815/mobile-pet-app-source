@@ -18,6 +18,7 @@ import { usePetStore, usePetRealtimeSync } from '../stores/PetStore';
 import { useChatStore } from '../stores/ChatStore';
 import { useFriendStore } from '../stores/FriendStore';
 import { usePairingStore } from '../stores/PairingStore';
+import { useAchievementStore } from '../stores/AchievementStore';
 import { Button } from '../shared/components/Button';
 import { Card } from '../shared/components/Card';
 import { Badge } from '../shared/components/Badge';
@@ -64,6 +65,13 @@ export function HomeScreen({ navigation }: Props) {
   const incomingFriendRequests = friendRequests.filter((r) => r.direction === 'incoming').length;
 
   const pairedDevices = usePairingStore((s) => s.devices);
+
+  const achievements = useAchievementStore((s) => s.achievements);
+  const quests = useAchievementStore((s) => s.quests);
+  const unlockedAchievements = achievements.filter((a) => a.unlocked).length;
+  const activeQuests = quests.filter(
+    (q) => q.status === 'active' && (q.expiresAt ?? Infinity) > Date.now()
+  ).length;
 
   // Subscribe to pet realtime updates
   usePetRealtimeSync();
@@ -345,6 +353,70 @@ export function HomeScreen({ navigation }: Props) {
           <Button
             title="Open"
             onPress={() => navigation.navigate('Pairing')}
+            variant="primary"
+            size="sm"
+          />
+        </View>
+      </Card>
+
+      {/* Achievements quick-link */}
+      <Card style={styles.section}>
+        <View style={styles.chatLinkRow}>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                color: theme.colors.text,
+                fontSize: theme.typography.size.headline,
+                fontWeight: '600',
+              }}
+            >
+              Achievements
+            </Text>
+            <Text
+              style={{
+                color: theme.colors.textSecondary,
+                fontSize: theme.typography.size.subhead,
+                marginTop: 2,
+              }}
+            >
+              {unlockedAchievements} of {achievements.length} unlocked
+            </Text>
+          </View>
+          <Button
+            title="Open"
+            onPress={() => navigation.navigate('Achievements')}
+            variant="primary"
+            size="sm"
+          />
+        </View>
+      </Card>
+
+      {/* Quests quick-link */}
+      <Card style={styles.section}>
+        <View style={styles.chatLinkRow}>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                color: theme.colors.text,
+                fontSize: theme.typography.size.headline,
+                fontWeight: '600',
+              }}
+            >
+              Quests
+            </Text>
+            <Text
+              style={{
+                color: theme.colors.textSecondary,
+                fontSize: theme.typography.size.subhead,
+                marginTop: 2,
+              }}
+            >
+              {activeQuests} active quest{activeQuests === 1 ? '' : 's'}
+            </Text>
+          </View>
+          <Button
+            title="Open"
+            onPress={() => navigation.navigate('Quests')}
             variant="primary"
             size="sm"
           />

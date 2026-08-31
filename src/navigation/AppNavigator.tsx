@@ -24,6 +24,8 @@ import { ChatListScreen } from '../screens/ChatListScreen';
 import { ChatThreadScreen } from '../screens/ChatThreadScreen';
 import { FriendsScreen } from '../screens/FriendsScreen';
 import { PairingScreen } from '../screens/PairingScreen';
+import { AchievementsScreen } from '../screens/AchievementsScreen';
+import { QuestsScreen } from '../screens/QuestsScreen';
 import type { RootStackParamList, MainStackParamList } from './types';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -95,6 +97,16 @@ function MainNavigator() {
       <MainStack.Screen
         name="Pairing"
         component={PairingScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MainStack.Screen
+        name="Achievements"
+        component={AchievementsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MainStack.Screen
+        name="Quests"
+        component={QuestsScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </MainStack.Navigator>

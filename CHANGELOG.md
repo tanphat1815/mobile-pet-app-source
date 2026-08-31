@@ -10,6 +10,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+### Step M-11 (Achievements + Quests viewer, read-only)
+- `src/api/achievementTypes.ts`: Achievement + Quest domain types
+  - `Achievement { id, title, description, category, tier,
+    unlocked, unlockedAt?, rewardCoins?, rewardXP?, icon,
+    progress?, progressHint? }`
+  - `AchievementCategory = care | social | exploration | collection |
+    special`
+  - `AchievementTier = bronze | silver | gold | platinum`
+  - `QuestObjective { id, description, current, goal, done }`
+  - `Quest { id, title, description, status, startTs, expiresAt?,
+    objectives, rewardCoins?, rewardXP?, icon, category? }`
+  - `QuestStatus = active | completed | expired`
+  - Helpers: `achievementProgressPct`, `questProgressPct`,
+    `tierGlyph`, `categoryGlyph`, `isQuestExpired`,
+    `questCountdownLabel`
+- `src/api/achievements.ts`: REST API with local mock state
+  - `listAchievements()` returns 12 achievements (4 unlocked:
+    First Steps, Pet's Best Friend, Squeaky Clean, Social
+    Butterfly; 8 with progress)
+  - `listQuests()` returns 4 quests (3 active, 1 completed)
+  - `claimQuestReward(questId)` (read-only step, only mutation)
+  - Local helpers: `unlockAchievement`, `bumpQuestObjective`
+- `src/stores/AchievementStore.ts`: Zustand store
+  - `achievements`, `quests`, `status`, `error`, `claiming`,
+    `lastClaimedCoins`, `lastClaimedXP`
+  - Actions: `loadAll`, `loadAchievements`, `loadQuests`,
+    `claimReward`, `reset`
+  - `useAchievementRealtimeSync()`: subscribes to
+    `achievement:unlocked` and `quest:progress` events from
+    SyncManager. Uses the existing schema
+    (`QuestProgressEvent { questId, title, progress, completed }`)
+    - finds the first incomplete objective and bumps it on
+    progress; flips all objectives on completion. Lazy-loads on
+    first mount.
+- Shared UI components:
+  - `AchievementCard`
+    (src/shared/components/AchievementCard.tsx): 2-column grid
+    card. Icon + tier glyph + title + description + category
+    glyph + Unlocked Badge (or progress hint) + progress bar
+    for locked ones. Subtle Reanimated pop on mount.
+  - `QuestRow` (src/shared/components/QuestRow.tsx): icon circle
+    + title + category badge + countdown/Done/Expired badge +
+    Reanimated aggregate progress bar + per-objective sub-rows
+    (with check + x/y counter) + reward line + Claim button when
+    completed.
+- Screens:
+  - `AchievementsScreen`
+    (src/screens/AchievementsScreen.tsx): Category SegmentedTabs
+    (All / Care / Social / Explore / Collect / Special) with
+    badge counts. "Show all / Hide locked" toggle. 2-column grid
+    FlatList. Tap a card -> Alert with details + reward.
+  - `QuestsScreen` (src/screens/QuestsScreen.tsx): Active /
+    Completed SegmentedTabs with counts. 1Hz ticker for
+    countdown. Completed quests -> Claim button -> Alert with
+    reward summary.
+- Navigation:
+  - `AppNavigator.tsx`: MainStack now includes `Achievements` and
+    `Quests`.
+- HomeScreen update:
+  - Added Achievements quick-link card (X of Y unlocked) + Open
+    button.
+  - Added Quests quick-link card (X active quests) + Open button.
+
 ### Step M-10 (Cross-device Pairing)
 - `src/api/pairingTypes.ts`: Pairing domain types
   - `PairingCode { code, expiresAt, status, deviceName? }`
