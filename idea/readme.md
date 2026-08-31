@@ -26,6 +26,7 @@
 | [M-10](./step-M-10-pairing.md) | Cross-device Pairing | **Done** (2026-08-31) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/7f29294) |
 | [M-11](./step-M-11-achievements-quests.md) | Achievements + Quests viewer (read-only) | **Done** (2026-08-31) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/d485691) |
 | [M-12](./step-M-12-biometric-haptics-onboarding.md) | Biometric login + haptic feedback + Onboarding slides | **Done** (2026-08-31) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/fd31e72) |
+| [M-13](./step-M-13-settings-profile.md) | Settings + Profile screens | **Done** (2026-08-31) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/f563c08) |
 | [M-2](./step-M-2-shared-ui-library.md) | Shared UI Library | Unreleased | - |
 | [M-3](./step-M-3-api-client-storage.md) | API Client + Storage | Unreleased | - |
 | [M-4](./step-M-4-auth-flow.md) | Auth Flow | Unreleased | - |
