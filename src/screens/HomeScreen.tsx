@@ -108,7 +108,7 @@ export function HomeScreen({ navigation }: Props) {
         ]}
       >
         <View style={styles.headerRow}>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text
               style={[
                 styles.greeting,
@@ -126,11 +126,20 @@ export function HomeScreen({ navigation }: Props) {
                   fontWeight: '700',
                 },
               ]}
+              onPress={() => navigation.navigate('Profile')}
             >
               {user?.displayName ?? user?.email ?? 'User'}
             </Text>
           </View>
-          <SyncStatusBadge />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Button
+              title="⚙"
+              onPress={() => navigation.navigate('Settings')}
+              variant="ghost"
+              size="sm"
+            />
+            <SyncStatusBadge />
+          </View>
         </View>
       </View>
 

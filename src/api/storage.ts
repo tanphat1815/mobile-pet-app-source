@@ -30,6 +30,7 @@ export const StorageKeys = {
   OnboardingComplete: 'onboarding.complete',
   PushToken: 'notifications.push_token',
   LastNotification: 'notifications.last',
+  UserSettings: 'settings.user_settings',
 } as const;
 
 export type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys];

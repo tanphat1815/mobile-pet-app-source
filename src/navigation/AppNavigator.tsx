@@ -26,6 +26,8 @@ import { FriendsScreen } from '../screens/FriendsScreen';
 import { PairingScreen } from '../screens/PairingScreen';
 import { AchievementsScreen } from '../screens/AchievementsScreen';
 import { QuestsScreen } from '../screens/QuestsScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { BiometricLoginScreen } from '../screens/BiometricLoginScreen';
 import { initHapticsAccessibility, hapticSuccess } from '../utils/haptics';
@@ -199,6 +201,16 @@ function MainNavigator() {
       <MainStack.Screen
         name="Quests"
         component={QuestsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MainStack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MainStack.Screen
+        name="Profile"
+        component={ProfileScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </MainStack.Navigator>

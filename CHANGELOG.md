@@ -10,6 +10,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+### Step M-13 (Settings + Profile screens)
+- `src/api/settingsTypes.ts`: User settings types
+  - `ThemePreference = system | light | dark`
+  - `UserSettings { theme, notificationsEnabled, biometricEnabled,
+    reducedMotionOverride, quietHoursEnabled, quietHoursStart,
+    quietHoursEnd, showOnlineStatus, allowFriendRequests,
+    autoPairKnownDevices, marketingEmails }`
+  - `DEFAULT_SETTINGS`
+  - `themeLabel`, `friendRequestLabel` helpers
+- `src/api/settings.ts`: REST API + profile + stats
+  - `getUserSettings()` returns DEFAULT_SETTINGS if nothing
+    persisted yet
+  - `updateUserSettings(patch)` - optimistic + persists to
+    AsyncStorage under `settings.user_settings`
+  - `updateProfile({ displayName?, avatarUrl? })` - merges into
+    stored AuthUser
+  - `getUserStats()` returns mock stats (Lv 13, 5 friends,
+    4/12 achievements, 14-day streak, 30-day member)
+- `src/api/storage.ts`: new key `UserSettings`
+- `src/stores/SettingsStore.ts`: Zustand store
+  - `settings`, `status`, `error`, `saving`, `profileSaving`,
+    `profileError`, `stats`, `statsStatus`, `profileSnapshot`
+  - Actions: `loadAll`, `loadStats`, `updateSetting<K>` (generic,
+    optimistic with rollback on error), `saveProfile`, `reset`
+- Shared UI components:
+  - `SettingsSection`
+    (src/shared/components/SettingsSection.tsx): section header
+    (uppercase + optional description) + grouped content card
+    with auto-injected `isLast` prop for last-row separators.
+  - `SettingsRow`
+    (src/shared/components/SettingsRow.tsx): single row with icon
+    glyph, label, optional subtitle, support for `toggle`,
+    `navigation`, `value` types; destructive variant.
+- Screens:
+  - `SettingsScreen`
+    (src/screens/SettingsScreen.tsx): scrollable sections
+    (Account / Appearance / Notifications / Privacy & Security /
+    About). Includes theme picker Modal, friend-request picker
+    Modal, Sign-out Alert, biometric toggle with capability
+    re-probe and graceful fallback Alert. Uses `Modal` (which
+    was extended to accept an optional `title` prop).
+  - `ProfileScreen`
+    (src/screens/ProfileScreen.tsx): avatar (image if URL else
+    emoji), display name, email, member-since line, "Edit
+    profile" button (opens a Modal with `TextField` for name +
+    avatar URL), 2x2 stats grid (Pet level / Friends /
+    Achievements / Day streak), "Open settings" Card. Modal
+    uses the new optional `title` prop.
+- Navigation:
+  - `AppNavigator.tsx`: MainStack now includes `Settings` and
+    `Profile`.
+- `src/navigation/types.ts`: `Settings` and `Profile` already
+  in `MainStackParamList` (reserved in earlier step).
+- `src/shared/components/Modal.tsx`: extended to accept an
+  optional `title` prop that renders a centered title above the
+  content card. Backwards-compatible (optional).
+- HomeScreen update:
+  - Added gear (⚙) button in the header next to the sync
+    status badge that navigates to Settings.
+  - Display name is now tappable -> Profile.
+
 ### Step M-12 (Biometric login + haptic feedback + Onboarding slides)
 - Dependencies (package.json):
   - expo-local-authentication ~57.0.2

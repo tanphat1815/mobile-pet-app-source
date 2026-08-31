@@ -10,6 +10,7 @@ import {
   Modal as RNModal,
   Pressable,
   View,
+  Text,
   StyleSheet,
   ViewStyle,
 } from 'react-native';
@@ -23,6 +24,8 @@ interface ModalProps {
   children: React.ReactNode;
   contentStyle?: ViewStyle;
   dismissOnBackdropPress?: boolean;
+  /** Optional header title rendered at the top of the modal. */
+  title?: string;
 }
 
 export function Modal({
@@ -31,6 +34,7 @@ export function Modal({
   children,
   contentStyle,
   dismissOnBackdropPress = true,
+  title,
 }: ModalProps) {
   const theme = useTheme();
   const { overlayStyle, contentStyle: animatedContent, animateIn, animateOut } =
@@ -81,6 +85,19 @@ export function Modal({
               contentStyle,
             ]}
           >
+            {title ? (
+              <Text
+                style={{
+                  color: theme.colors.text,
+                  fontSize: theme.typography.size.title3,
+                  fontWeight: '700',
+                  marginBottom: 8,
+                  textAlign: 'center',
+                }}
+              >
+                {title}
+              </Text>
+            ) : null}
             {children}
           </Animated.View>
         </View>
