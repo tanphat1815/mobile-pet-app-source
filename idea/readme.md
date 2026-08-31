@@ -23,6 +23,7 @@
 | [M-7](./step-M-7-push-notifications.md) | Push Notifications | **Done** (2026-08-30) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/ccca11a) |
 | [M-8](./step-M-8-chat-screens.md) | Chat 1-1 screens | **Done** (2026-08-30) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/5b6bcd3) |
 | [M-9](./step-M-9-friends-list.md) | Friends List | **Done** (2026-08-30) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/256c16b) |
+| [M-10](./step-M-10-pairing.md) | Cross-device Pairing | **Done** (2026-08-31) | [Commit](https://github.com/tanphat1815/mobile-pet-app-source/commit/7f29294) |
 | [M-2](./step-M-2-shared-ui-library.md) | Shared UI Library | Unreleased | - |
 | [M-3](./step-M-3-api-client-storage.md) | API Client + Storage | Unreleased | - |
 | [M-4](./step-M-4-auth-flow.md) | Auth Flow | Unreleased | - |
