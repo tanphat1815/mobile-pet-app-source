@@ -23,6 +23,7 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { ChatListScreen } from '../screens/ChatListScreen';
 import { ChatThreadScreen } from '../screens/ChatThreadScreen';
 import { FriendsScreen } from '../screens/FriendsScreen';
+import { PairingScreen } from '../screens/PairingScreen';
 import type { RootStackParamList, MainStackParamList } from './types';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -89,6 +90,11 @@ function MainNavigator() {
       <MainStack.Screen
         name="Friends"
         component={FriendsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MainStack.Screen
+        name="Pairing"
+        component={PairingScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </MainStack.Navigator>

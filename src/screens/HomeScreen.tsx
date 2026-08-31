@@ -17,6 +17,7 @@ import { useSyncStore } from '../stores/SyncStore';
 import { usePetStore, usePetRealtimeSync } from '../stores/PetStore';
 import { useChatStore } from '../stores/ChatStore';
 import { useFriendStore } from '../stores/FriendStore';
+import { usePairingStore } from '../stores/PairingStore';
 import { Button } from '../shared/components/Button';
 import { Card } from '../shared/components/Card';
 import { Badge } from '../shared/components/Badge';
@@ -61,6 +62,8 @@ export function HomeScreen({ navigation }: Props) {
   const friendRequests = useFriendStore((s) => s.requests);
   const onlineFriends = friends.filter((f) => f.presence === 'online').length;
   const incomingFriendRequests = friendRequests.filter((r) => r.direction === 'incoming').length;
+
+  const pairedDevices = usePairingStore((s) => s.devices);
 
   // Subscribe to pet realtime updates
   usePetRealtimeSync();
@@ -308,6 +311,40 @@ export function HomeScreen({ navigation }: Props) {
           <Button
             title="Open"
             onPress={() => navigation.navigate('Friends')}
+            variant="primary"
+            size="sm"
+          />
+        </View>
+      </Card>
+
+      {/* Pairing quick-link */}
+      <Card style={styles.section}>
+        <View style={styles.chatLinkRow}>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                color: theme.colors.text,
+                fontSize: theme.typography.size.headline,
+                fontWeight: '600',
+              }}
+            >
+              Pairing
+            </Text>
+            <Text
+              style={{
+                color: theme.colors.textSecondary,
+                fontSize: theme.typography.size.subhead,
+                marginTop: 2,
+              }}
+            >
+              {pairedDevices.length > 0
+                ? `${pairedDevices.length} device${pairedDevices.length === 1 ? '' : 's'} paired`
+                : 'No devices paired yet'}
+            </Text>
+          </View>
+          <Button
+            title="Open"
+            onPress={() => navigation.navigate('Pairing')}
             variant="primary"
             size="sm"
           />

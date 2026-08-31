@@ -10,6 +10,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+### Step M-10 (Cross-device Pairing)
+- `src/api/pairingTypes.ts`: Pairing domain types
+  - `PairingCode { code, expiresAt, status, deviceName? }`
+  - `PairedDevice { id, deviceName, platform, pairedAt, lastSeen?,
+    isCurrent? }`
+  - `DevicePlatform = ios | android | web`
+  - `PairingStatus = pending | confirmed | expired | revoked`
+  - Helpers: `formatPairingCode` (123-456), `normalizePairingCode`
+    (strip non-digits, clamp 6), `secondsUntilExpiry`,
+    `formatCountdown`
+- `src/api/pairing.ts`: REST API with local mock state. PAIRING_TTL_MS
+  is 5 minutes. Methods:
+  - `generatePairingCode(deviceName?)` - returns existing if unexpired
+  - `cancelPairingCode()`, `submitPairingCode(input)`
+  - `listPairedDevices()`, `unpairDevice(deviceId)`
+  - Local helpers `setCurrentCodeFromRealtime`,
+    `addPairedDeviceFromRealtime` for SyncManager integration.
+- `src/stores/PairingStore.ts`: Zustand store
+  - `currentCode`, `codeBusy`, `devices`, `devicesStatus`,
+    `devicesError`, `submitting`, `submitError`, `lastPairedDevice`
+  - Actions: `loadDevices`, `generateCode`, `cancelCode`,
+    `submitCode`, `unpair`, `clearSubmitError`, `reset`
+  - `usePairingRealtimeSync()`: subscribes to `pairing:code` and
+    `pairing:confirmed` from SyncManager, lazy-loads devices.
+- Shared UI components:
+  - `PairingCodeDisplay`
+    (src/shared/components/PairingCodeDisplay.tsx): 6-digit code
+    with auto-spacing, expiry countdown (MM:SS), animated
+    progress bar, danger color when ≤60s left.
+  - `PairedDeviceRow`
+    (src/shared/components/PairedDeviceRow.tsx): platform emoji
+    + device name + "This device" badge + last-seen relative + X
+    button (with Alert confirmation, hidden on current device).
+- `src/screens/PairingScreen.tsx`: Three tabs (Show code / Enter
+  code / Devices). 1Hz ticker for countdown. Auto-generates code
+  when entering Show tab. Auto-jumps to Devices tab after a
+  successful pair. Pull-to-refresh on Devices.
+- `src/navigation/AppNavigator.tsx`: MainStack now includes Pairing
+  screen.
+- `src/screens/HomeScreen.tsx`: Added Pairing quick-link card
+  showing paired device count + Open button.
+
 ### Step M-9 (Friends List with online status)
 - `src/api/friendTypes.ts`: Friend, FriendRequest, FriendSuggestion,
   PresenceStatus, FriendStatus. Helpers: `byPresenceThenName`,
