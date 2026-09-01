@@ -35,7 +35,15 @@ npm start
 # Build for production
 eas build --platform android
 eas build --platform ios
+
+# Tests
+npm test                  # one-shot
+npm run test:watch        # watch mode
+npm run test:coverage     # coverage + threshold check
 ```
+
+See `docs/testing.md` for the full testing guide and `docs/eas-build.md`
+for the EAS build / submit walkthrough.
 
 ## Repository Structure
 

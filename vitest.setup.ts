@@ -150,6 +150,7 @@ vi.mock('react-native', () => {
   }
   return {
     Platform: { OS: 'ios', select },
+    useColorScheme: () => 'light',
     View: (props) => props,
     Text: (props) => props,
     Image: (props) => props,
