@@ -24,11 +24,17 @@ import { useAuthStore } from '../stores/AuthStore';
 import { useChatStore, useChatRealtimeSync } from '../stores/ChatStore';
 import { ChatBubble } from '../shared/components/ChatBubble';
 import { ChatInputBar } from '../shared/components/ChatInputBar';
-import { byTsAsc } from '../api/chatTypes';
+import { byTsAsc, ChatMessage } from '../api/chatTypes';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'ChatThread'>;
+
+// Module-level stable reference for the empty thread fallback.
+// Returning a fresh `[]` literal from a Zustand selector creates a new
+// reference on every render, which triggers an infinite re-render loop
+// because Zustand uses Object.is for selector equality.
+const EMPTY_MESSAGES: readonly ChatMessage[] = Object.freeze([]);
 
 export function ChatThreadScreen({ route, navigation }: Props) {
   const theme = useTheme();
@@ -38,7 +44,7 @@ export function ChatThreadScreen({ route, navigation }: Props) {
   const conversation = useChatStore((s) =>
     s.conversations.find((c) => c.id === conversationId) ?? null
   );
-  const messages = useChatStore((s) => s.threads[conversationId] ?? []);
+  const messages = useChatStore((s) => s.threads[conversationId] ?? EMPTY_MESSAGES);
   const threadStatus = useChatStore((s) => s.threadStatus[conversationId] ?? 'idle');
   const loadThread = useChatStore((s) => s.loadThread);
   const send = useChatStore((s) => s.send);
