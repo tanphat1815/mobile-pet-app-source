@@ -15,12 +15,17 @@ import {
   getMessages,
   sendMessage,
   markRead,
+  editMessage,
+  deleteMessage,
+  reactToMessage,
+  uploadChatImage,
 } from '../api/chat';
 import {
   Conversation,
   ChatMessage,
   SendMessageInput,
   byTsAsc,
+  toggleReaction as toggleReactionHelper,
 } from '../api/chatTypes';
 import { useAuthStore } from './AuthStore';
 import { useSyncEvent } from './SyncStore';
@@ -52,6 +57,23 @@ export interface ChatState {
   loadThread: (conversationId: string) => Promise<void>;
   send: (input: SendMessageInput) => Promise<void>;
   markThreadRead: (conversationId: string) => Promise<void>;
+  // Step 5
+  editMessage: (messageId: string, conversationId: string, newText: string) => Promise<void>;
+  deleteMessage: (messageId: string, conversationId: string) => Promise<void>;
+  toggleReaction: (messageId: string, conversationId: string, emoji: string) => Promise<void>;
+  sendImage: (
+    conversationId: string,
+    uri: string,
+    width: number,
+    height: number,
+    parentId?: string
+  ) => Promise<void>;
+  sendSticker: (
+    conversationId: string,
+    stickerId: string,
+    packId: string,
+    parentId?: string
+  ) => Promise<void>;
   reset: () => void;
 }
 
@@ -158,6 +180,183 @@ export const useChatStore = create<ChatState>((set, get) => ({
       });
     } catch {
       /* ignore */
+    }
+  },
+
+  // ==========================================================================
+  // Step 5 — edit / delete / react / sticker / image
+  // ==========================================================================
+
+  editMessage: async (messageId, conversationId, newText) => {
+    // Optimistic
+    const before = get().threads[conversationId] ?? [];
+    const optimistic = before.map((m) =>
+      m.id === messageId ? { ...m, text: newText, editedAt: Date.now() } : m
+    );
+    set({ threads: { ...get().threads, [conversationId]: optimistic } });
+    try {
+      const updated = await editMessage(conversationId, messageId, newText);
+      const next = (get().threads[conversationId] ?? []).map((m) =>
+        m.id === messageId ? updated : m
+      );
+      set({ threads: { ...get().threads, [conversationId]: next } });
+    } catch {
+      // Rollback
+      set({ threads: { ...get().threads, [conversationId]: before } });
+      throw new Error('Failed to edit message');
+    }
+  },
+
+  deleteMessage: async (messageId, conversationId) => {
+    const before = get().threads[conversationId] ?? [];
+    const optimistic = before.map((m) =>
+      m.id === messageId ? { ...m, deletedAt: Date.now(), text: '' } : m
+    );
+    set({ threads: { ...get().threads, [conversationId]: optimistic } });
+    try {
+      const updated = await deleteMessage(conversationId, messageId);
+      const next = (get().threads[conversationId] ?? []).map((m) =>
+        m.id === messageId ? updated : m
+      );
+      set({ threads: { ...get().threads, [conversationId]: next } });
+    } catch {
+      set({ threads: { ...get().threads, [conversationId]: before } });
+      throw new Error('Failed to delete message');
+    }
+  },
+
+  toggleReaction: async (messageId, conversationId, emoji) => {
+    const userId = useAuthStore.getState().user?.id ?? 'dev_user';
+    const before = get().threads[conversationId] ?? [];
+    const target = before.find((m) => m.id === messageId);
+    if (!target) return;
+    const optimistic = before.map((m) =>
+      m.id === messageId ? toggleReactionHelper(m, emoji, userId) : m
+    );
+    set({ threads: { ...get().threads, [conversationId]: optimistic } });
+    try {
+      const wasReacted = (target.reactions ?? []).some(
+        (r) => r.emoji === emoji && r.userIds.includes(userId)
+      );
+      const updated = await reactToMessage(
+        conversationId,
+        messageId,
+        emoji,
+        userId,
+        wasReacted ? 'remove' : 'add'
+      );
+      const next = (get().threads[conversationId] ?? []).map((m) =>
+        m.id === messageId ? updated : m
+      );
+      set({ threads: { ...get().threads, [conversationId]: next } });
+    } catch {
+      set({ threads: { ...get().threads, [conversationId]: before } });
+    }
+  },
+
+  sendImage: async (conversationId, uri, width, height, parentId) => {
+    const currentUserId = useAuthStore.getState().user?.id ?? 'dev_user';
+    const localId = `local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    // Upload first
+    let url = uri;
+    try {
+      const up = await uploadChatImage({ uri, width, height });
+      url = up.url;
+    } catch {
+      // Use local uri as fallback
+    }
+    const optimistic: ChatMessage = {
+      id: localId,
+      conversationId,
+      fromUserId: currentUserId,
+      toUserId: 'pending',
+      kind: 'image',
+      text: '',
+      ts: Date.now(),
+      status: 'pending',
+      mediaUrl: url,
+      mediaWidth: width,
+      mediaHeight: height,
+      parentId,
+    };
+    const existing = get().threads[conversationId] ?? [];
+    set({
+      threads: { ...get().threads, [conversationId]: [...existing, optimistic] },
+      pendingCount: get().pendingCount + 1,
+    });
+    try {
+      const res = await sendMessage(conversationId, '', {
+        kind: 'image',
+        mediaUrl: url,
+        mediaWidth: width,
+        mediaHeight: height,
+        parentId,
+        clientMsgId: localId,
+      });
+      const after = (get().threads[conversationId] ?? []).map((m) =>
+        m.id === localId ? res.message : m
+      );
+      set({
+        threads: { ...get().threads, [conversationId]: after },
+        pendingCount: Math.max(0, get().pendingCount - 1),
+      });
+      touchConversation(conversationId, res.message.ts);
+    } catch {
+      const after = (get().threads[conversationId] ?? []).map((m) =>
+        m.id === localId ? { ...m, status: 'failed' as const } : m
+      );
+      set({
+        threads: { ...get().threads, [conversationId]: after },
+        pendingCount: Math.max(0, get().pendingCount - 1),
+      });
+    }
+  },
+
+  sendSticker: async (conversationId, stickerId, packId, parentId) => {
+    const currentUserId = useAuthStore.getState().user?.id ?? 'dev_user';
+    const localId = `local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const optimistic: ChatMessage = {
+      id: localId,
+      conversationId,
+      fromUserId: currentUserId,
+      toUserId: 'pending',
+      kind: 'sticker',
+      text: stickerId,
+      ts: Date.now(),
+      status: 'pending',
+      stickerId,
+      stickerPackId: packId,
+      parentId,
+    };
+    const existing = get().threads[conversationId] ?? [];
+    set({
+      threads: { ...get().threads, [conversationId]: [...existing, optimistic] },
+      pendingCount: get().pendingCount + 1,
+    });
+    try {
+      const res = await sendMessage(conversationId, stickerId, {
+        kind: 'sticker',
+        stickerId,
+        stickerPackId: packId,
+        parentId,
+        clientMsgId: localId,
+      });
+      const after = (get().threads[conversationId] ?? []).map((m) =>
+        m.id === localId ? res.message : m
+      );
+      set({
+        threads: { ...get().threads, [conversationId]: after },
+        pendingCount: Math.max(0, get().pendingCount - 1),
+      });
+      touchConversation(conversationId, res.message.ts);
+    } catch {
+      const after = (get().threads[conversationId] ?? []).map((m) =>
+        m.id === localId ? { ...m, status: 'failed' as const } : m
+      );
+      set({
+        threads: { ...get().threads, [conversationId]: after },
+        pendingCount: Math.max(0, get().pendingCount - 1),
+      });
     }
   },
 
