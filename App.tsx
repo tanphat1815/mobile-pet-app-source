@@ -3,6 +3,9 @@
  *
  * Wraps the app with GestureHandlerRootView (required for Reanimated) and
  * NavigationContainer (required for React Navigation).
+ *
+ * Step 2 — thêm `DecorationsHost` để render overlay particles + corners theo
+ * theme hiện tại (snowflakes/ghost/confetti/fireworks/matrix/hearts).
  */
 
 import React, { useEffect } from 'react';
@@ -15,6 +18,30 @@ import { SyncLifecycle } from './src/stores/SyncLifecycle';
 import { NotificationLifecycle } from './src/stores/NotificationLifecycle';
 import { useTheme } from './src/utils/useTheme';
 import { logRuntimeConfig } from './src/utils/runtimeConfig';
+import { useSettingsStore } from './src/stores/SettingsStore';
+import { ThemeDecorations } from './src/shared/components/ThemeDecorations';
+import { APP_THEMES, resolveThemeId } from './src/utils/appThemes';
+
+function DecorationsHost() {
+  const theme = useTheme();
+  const appThemeId = useSettingsStore((s) => s.settings.appThemeId);
+  // Resolve id tương tự useTheme — không cần re-read colorScheme ở đây vì
+  // decorations là tĩnh theo appThemeId.
+  const id =
+    appThemeId === 'auto'
+      ? theme.isDark
+        ? 'dark'
+        : 'light'
+      : appThemeId;
+  const appTheme = APP_THEMES[id];
+  if (!appTheme || appTheme.decorations.particles === 'none') return null;
+  return (
+    <ThemeDecorations
+      decorations={appTheme.decorations}
+      textColor={appTheme.tokens.text}
+    />
+  );
+}
 
 function ThemedApp() {
   const theme = useTheme();
@@ -55,6 +82,7 @@ function ThemedApp() {
         <NotificationLifecycle>
           <AppNavigator />
         </NotificationLifecycle>
+        <DecorationsHost />
       </SyncLifecycle>
     </NavigationContainer>
   );

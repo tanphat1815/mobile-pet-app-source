@@ -7,10 +7,21 @@
  * can render immediately on app launch.
  */
 
+import type { ThemeId } from '../utils/appThemes';
+
 export type ThemePreference = 'system' | 'light' | 'dark';
 
 export interface UserSettings {
+  /**
+   * Coarse theme preference (system / light / dark) — chỉ 3 giá trị
+   * cho tương thích ngược. Step 2 thêm `appThemeId` cho seasonal/premium.
+   */
   theme: ThemePreference;
+  /**
+   * App-level theme id bao gồm seasonal/premium/custom. Mặc định 'auto'
+   * (theo theme preference + OS). Step 2 — xem docs/steps/step-02.
+   */
+  appThemeId: ThemeId;
   notificationsEnabled: boolean;
   biometricEnabled: boolean;
   /** Reduced motion is detected automatically but users can also
@@ -32,6 +43,7 @@ export interface UserSettings {
 
 export const DEFAULT_SETTINGS: UserSettings = {
   theme: 'system',
+  appThemeId: 'auto',
   notificationsEnabled: true,
   biometricEnabled: false,
   reducedMotionOverride: 'system',
