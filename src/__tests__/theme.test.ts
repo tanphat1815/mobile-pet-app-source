@@ -31,11 +31,13 @@ const REQUIRED_COLOR_KEYS = [
   'surface',
   'surface2',
   'surfaceElevated',
+  'surfaceMuted',
   'text',
   'textSecondary',
   'textTertiary',
   'textInverse',
   'border',
+  'borderStrong',
   'separator',
   'overlay',
   'scrim',
@@ -105,8 +107,29 @@ describe('theme tokens', () => {
   it('exposes shadow tokens for each elevation level', () => {
     for (const k of REQUIRED_SHADOW_KEYS) {
       expect(shadows[k as keyof typeof shadows]).toBeDefined();
-      expect(shadows[k as keyof typeof shadows].shadowColor).toBe('#000');
+      // Step 1 (Cozy Cream parity): shadowColor dùng warm tone #1E2024 thay vì #000
+      // để hợp với kem background (xem docs/steps/step-01-theme-parity.md).
+      expect(shadows[k as keyof typeof shadows].shadowColor).toBe('#1E2024');
     }
+  });
+
+  it('light theme uses Cozy Cream palette (port from desktop app-themes.js)', () => {
+    // bg = #FAF7F2, surface2 = #FFFDF9, surfaceMuted = #F2EDE4
+    expect(lightTheme.colors.bg).toBe('#FAF7F2');
+    expect(lightTheme.colors.surface2).toBe('#FFFDF9');
+    expect(lightTheme.colors.surfaceMuted).toBe('#F2EDE4');
+    // Text & border warm tone
+    expect(lightTheme.colors.text).toBe('#1E2024');
+    expect(lightTheme.colors.textSecondary).toBe('#686E78');
+    expect(lightTheme.colors.border).toBe('#EAE4D9');
+    expect(lightTheme.colors.borderStrong).toBe('#D8D0C2');
+  });
+
+  it('dark theme keeps desktop tokens (unchanged from baseline)', () => {
+    expect(darkTheme.colors.bg).toBe('#1C1C1E');
+    expect(darkTheme.colors.surface).toBe('#2C2C2E');
+    expect(darkTheme.colors.text).toBe('#F2F2F7');
+    expect(darkTheme.colors.border).toBe('#38383A');
   });
 
   it('exposes easing + duration tokens', () => {
