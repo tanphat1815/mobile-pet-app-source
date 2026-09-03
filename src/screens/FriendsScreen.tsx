@@ -15,6 +15,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
+  Pressable,
   StyleSheet,
   FlatList,
   RefreshControl,
@@ -28,12 +29,17 @@ import { SuggestionRow } from '../shared/components/SuggestionRow';
 import { FriendSearchBar } from '../shared/components/FriendSearchBar';
 import { SegmentedTabs, TabItem } from '../shared/components/SegmentedTabs';
 import { Card } from '../shared/components/Card';
+import { Modal } from '../shared/components/Modal';
+import { FriendTagChips } from '../shared/components/FriendTagChips';
+import { ActivityFeed } from '../shared/components/ActivityFeed';
+import { SendGiftSheet } from '../shared/components/SendGiftSheet';
+import { GiftCard } from '../shared/components/GiftCard';
 import { byPresenceThenName, byRequestOrder, Friend } from '../api/friendTypes';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Friends'>;
-type TabKey = 'friends' | 'requests' | 'suggestions';
+type TabKey = 'friends' | 'requests' | 'suggestions' | 'activity';
 
 export function FriendsScreen({ navigation }: Props) {
   const theme = useTheme();
@@ -54,9 +60,20 @@ export function FriendsScreen({ navigation }: Props) {
   const removeFriendFn = useFriendStore((s) => s.removeFriend);
   const searchFn = useFriendStore((s) => s.search);
   const clearSearch = useFriendStore((s) => s.clearSearch);
+  // Step 4 — tags, gifts, activity
+  const updateTags = useFriendStore((s) => s.updateTags);
+  const sendGift = useFriendStore((s) => s.sendGift);
+  const gifts = useFriendStore((s) => s.gifts);
+  const loadGifts = useFriendStore((s) => s.loadGifts);
+  const ackGift = useFriendStore((s) => s.acknowledgeGiftAction);
+  const activity = useFriendStore((s) => s.activity);
+  const activityStatus = useFriendStore((s) => s.activityStatus);
+  const loadActivity = useFriendStore((s) => s.loadActivity);
 
   const [tab, setTab] = useState<TabKey>('friends');
   const [sendingRequestTo, setSendingRequestTo] = useState<string | null>(null);
+  const [giftSheetFriend, setGiftSheetFriend] = useState<Friend | null>(null);
+  const [tagSheetFriend, setTagSheetFriend] = useState<Friend | null>(null);
 
   useFriendRealtimeSync();
 
@@ -64,7 +81,10 @@ export function FriendsScreen({ navigation }: Props) {
     if (status === 'idle') {
       loadAll();
     }
-  }, [status, loadAll]);
+    if (activityStatus === 'idle') {
+      loadActivity();
+    }
+  }, [status, activityStatus, loadAll, loadActivity]);
 
   const incomingCount = requests.filter((r) => r.direction === 'incoming').length;
 
@@ -72,6 +92,7 @@ export function FriendsScreen({ navigation }: Props) {
     { key: 'friends', label: 'Friends', badge: friends.length },
     { key: 'requests', label: 'Requests', badge: incomingCount },
     { key: 'suggestions', label: 'Add', badge: suggestions.length },
+    { key: 'activity', label: 'Activity', badge: activity.length },
   ];
 
   // Debounced search
@@ -109,9 +130,17 @@ export function FriendsScreen({ navigation }: Props) {
     (friend: Friend) => {
       Alert.alert(
         friend.displayName,
-        'Do you want to remove this friend?',
+        'Choose an action',
         [
           { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Send Gift',
+            onPress: () => setGiftSheetFriend(friend),
+          },
+          {
+            text: 'Edit Tags',
+            onPress: () => setTagSheetFriend(friend),
+          },
           {
             text: 'Remove',
             style: 'destructive',
@@ -288,7 +317,164 @@ export function FriendsScreen({ navigation }: Props) {
           />
         </>
       )}
+
+      {tab === 'activity' && (
+        <View style={{ flex: 1, paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.md }}>
+          {/* Gifts + Activity split view */}
+          {gifts.length > 0 ? (
+            <View style={{ marginBottom: theme.spacing.lg }}>
+              <Text
+                style={{
+                  color: theme.colors.textSecondary,
+                  fontSize: theme.typography.size.caption1,
+                  fontWeight: '600',
+                  letterSpacing: 0.5,
+                  textTransform: 'uppercase',
+                  marginBottom: theme.spacing.sm,
+                }}
+              >
+                Recent Gifts
+              </Text>
+              {gifts.slice(0, 3).map((g) => (
+                <GiftCard
+                  key={g.id}
+                  gift={g}
+                  onAcknowledge={(gift) => ackGift(gift.id)}
+                />
+              ))}
+            </View>
+          ) : null}
+          <Text
+            style={{
+              color: theme.colors.textSecondary,
+              fontSize: theme.typography.size.caption1,
+              fontWeight: '600',
+              letterSpacing: 0.5,
+              textTransform: 'uppercase',
+              marginBottom: theme.spacing.sm,
+            }}
+          >
+            Activity Feed
+          </Text>
+          <ActivityFeed
+            activities={activity}
+            loading={activityStatus === 'loading'}
+            emptyTitle="Chưa có hoạt động nào. Hãy chơi cùng bạn bè!"
+          />
+        </View>
+      )}
+
+      {/* Send Gift Sheet */}
+      {giftSheetFriend ? (
+        <SendGiftSheet
+          visible={!!giftSheetFriend}
+          onClose={() => setGiftSheetFriend(null)}
+          toUserId={giftSheetFriend.userId}
+          toDisplayName={giftSheetFriend.displayName}
+          coinsBalance={9999}
+          onSend={async ({ giftType, message }) => {
+            await sendGift({
+              toUserId: giftSheetFriend.userId,
+              giftType,
+              message,
+            });
+            // Refresh activity after sending
+            await loadActivity();
+          }}
+        />
+      ) : null}
+
+      {/* Tag editing sheet */}
+      {tagSheetFriend ? (
+        <TagEditSheet
+          visible={!!tagSheetFriend}
+          friend={tagSheetFriend}
+          onClose={() => setTagSheetFriend(null)}
+          onAdd={async (tag) => {
+            await updateTags(tagSheetFriend.userId, [
+              ...(tagSheetFriend.tags ?? []),
+              tag,
+            ]);
+            // Refresh local reference
+            setTagSheetFriend({
+              ...tagSheetFriend,
+              tags: [...(tagSheetFriend.tags ?? []), tag],
+            });
+          }}
+          onRemove={async (tag) => {
+            await updateTags(
+              tagSheetFriend.userId,
+              (tagSheetFriend.tags ?? []).filter((t) => t !== tag)
+            );
+            setTagSheetFriend({
+              ...tagSheetFriend,
+              tags: (tagSheetFriend.tags ?? []).filter((t) => t !== tag),
+            });
+          }}
+        />
+      ) : null}
     </View>
+  );
+}
+
+/**
+ * Tag edit sheet (small modal chứa FriendTagChips với editable=true).
+ */
+function TagEditSheet({
+  visible,
+  friend,
+  onClose,
+  onAdd,
+  onRemove,
+}: {
+  visible: boolean;
+  friend: Friend;
+  onClose: () => void;
+  onAdd: (tag: any) => Promise<void>;
+  onRemove: (tag: any) => Promise<void>;
+}) {
+  const theme = useTheme();
+  return (
+    <Modal
+      visible={visible}
+      onRequestClose={onClose}
+      title={`Tags for ${friend.displayName}`}
+      contentStyle={{ maxWidth: 480, width: '100%' }}
+    >
+      <View style={{ padding: 4 }}>
+        <Text
+          style={{
+            color: theme.colors.textSecondary,
+            fontSize: theme.typography.size.footnote,
+            marginBottom: theme.spacing.md,
+            textAlign: 'center',
+          }}
+        >
+          Tap a tag to add/remove. Tap "+ Add" cho danh sách đầy đủ.
+        </Text>
+        <FriendTagChips
+          tags={friend.tags ?? []}
+          editable
+          onAdd={onAdd}
+          onRemove={onRemove}
+          size="md"
+          maxVisible={6}
+        />
+        <Pressable
+          onPress={onClose}
+          style={{
+            marginTop: theme.spacing.lg,
+            height: 44,
+            borderRadius: 10,
+            backgroundColor: theme.colors.accent,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={{ color: theme.colors.textInverse, fontWeight: '700' }}>Done</Text>
+        </Pressable>
+      </View>
+    </Modal>
   );
 }
 

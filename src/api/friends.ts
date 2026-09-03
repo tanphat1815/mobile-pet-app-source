@@ -19,8 +19,12 @@ import apiClient from './client';
 import { getApiError } from './client';
 import {
   Friend,
+  FriendActivity,
+  FriendGift,
   FriendRequest,
   FriendSuggestion,
+  FriendTag,
+  FriendGiftType,
 } from './friendTypes';
 
 // ============================================================================
@@ -41,6 +45,9 @@ function makeMockFriends(): Friend[] {
       lastSeen: m(2),
       friendsSince: h(48),
       statusMessage: 'Walking Mochi',
+      tags: ['best_friend'],
+      giftsReceived: 5,
+      lastActivity: m(15),
     },
     {
       userId: 'u_carol',
@@ -50,6 +57,8 @@ function makeMockFriends(): Friend[] {
       presence: 'online',
       lastSeen: m(5),
       friendsSince: h(72),
+      tags: ['gaming', 'study_buddy'],
+      giftsReceived: 2,
     },
     {
       userId: 'u_dave',
@@ -59,6 +68,7 @@ function makeMockFriends(): Friend[] {
       presence: 'away',
       lastSeen: m(20),
       friendsSince: h(24),
+      tags: ['workout'],
     },
     {
       userId: 'u_bob',
@@ -68,6 +78,7 @@ function makeMockFriends(): Friend[] {
       presence: 'offline',
       lastSeen: h(2),
       friendsSince: h(120),
+      tags: ['rival'],
     },
     {
       userId: 'u_emma',
@@ -77,6 +88,7 @@ function makeMockFriends(): Friend[] {
       presence: 'offline',
       lastSeen: h(48),
       friendsSince: h(8),
+      tags: ['family'],
     },
   ];
 }
@@ -287,6 +299,206 @@ export async function cancelFriendRequest(requestId: string): Promise<{ ok: true
   }
   mockRequests = mockRequests.filter((r) => r.id !== requestId);
   return { ok: true };
+}
+
+// ============================================================================
+// Step 4 — Tags, Gifts, Activity
+// ============================================================================
+
+/**
+ * Update tags của 1 friend. Optimistic update với rollback on failure.
+ */
+export async function updateFriendTags(
+  userId: string,
+  tags: FriendTag[]
+): Promise<Friend> {
+  try {
+    await apiClient.post('/post', {
+      action: 'update_friend_tags',
+      userId,
+      tags,
+    });
+  } catch (err) {
+    const e = getApiError(err);
+    if (e.status !== 0) throw err;
+  }
+  const next = mockFriends.map((f) =>
+    f.userId === userId ? { ...f, tags: [...tags] } : f
+  );
+  mockFriends = next;
+  return next.find((f) => f.userId === userId)!;
+}
+
+/** Add 1 tag (idempotent). */
+export async function addFriendTag(
+  userId: string,
+  tag: FriendTag
+): Promise<Friend> {
+  const friend = findFriend(userId);
+  const tags = friend?.tags ?? [];
+  if (tags.includes(tag)) return friend!;
+  return updateFriendTags(userId, [...tags, tag]);
+}
+
+/** Remove 1 tag. */
+export async function removeFriendTag(
+  userId: string,
+  tag: FriendTag
+): Promise<Friend> {
+  const friend = findFriend(userId);
+  const tags = friend?.tags ?? [];
+  return updateFriendTags(
+    userId,
+    tags.filter((t) => t !== tag)
+  );
+}
+
+// ---------- Gifts ----------
+
+let mockGifts: FriendGift[] = [
+  {
+    id: 'gift_1',
+    fromUserId: 'me',
+    fromDisplayName: 'You',
+    toUserId: 'u_alice',
+    toDisplayName: 'Alice',
+    giftType: 'rose',
+    quantity: 1,
+    message: 'Congrats on level 12!',
+    sentAt: Date.now() - 86400000,
+    acknowledged: true,
+  },
+  {
+    id: 'gift_2',
+    fromUserId: 'u_carol',
+    fromDisplayName: 'Carol',
+    toUserId: 'me',
+    toDisplayName: 'You',
+    giftType: 'cake',
+    quantity: 1,
+    message: 'Happy friendship anniversary!',
+    sentAt: Date.now() - 3600000,
+    acknowledged: false,
+  },
+];
+let nextGiftId = 100;
+
+export async function sendFriendGift(input: {
+  toUserId: string;
+  giftType: FriendGiftType;
+  quantity?: number;
+  message?: string;
+}): Promise<FriendGift> {
+  try {
+    await apiClient.post('/post', {
+      action: 'send_friend_gift',
+      ...input,
+    });
+  } catch (err) {
+    const e = getApiError(err);
+    if (e.status !== 0) throw err;
+  }
+  nextGiftId += 1;
+  const gift: FriendGift = {
+    id: `gift_${nextGiftId}`,
+    fromUserId: 'me',
+    fromDisplayName: 'You',
+    toUserId: input.toUserId,
+    toDisplayName:
+      findFriend(input.toUserId)?.displayName ?? input.toUserId,
+    giftType: input.giftType,
+    quantity: input.quantity ?? 1,
+    message: input.message,
+    sentAt: Date.now(),
+    acknowledged: false,
+  };
+  mockGifts = [gift, ...mockGifts];
+  // Bump friend's giftsReceived counter
+  mockFriends = mockFriends.map((f) =>
+    f.userId === input.toUserId
+      ? { ...f, giftsReceived: (f.giftsReceived ?? 0) + gift.quantity }
+      : f
+  );
+  return gift;
+}
+
+export async function listGiftHistory(userId?: string): Promise<FriendGift[]> {
+  try {
+    await apiClient.get('/get', { params: { action: 'list_gift_history', userId } });
+  } catch (err) {
+    const e = getApiError(err);
+    if (e.status !== 0) throw err;
+  }
+  if (!userId) return mockGifts;
+  return mockGifts.filter(
+    (g) => g.fromUserId === userId || g.toUserId === userId
+  );
+}
+
+export async function acknowledgeGift(giftId: string): Promise<FriendGift> {
+  try {
+    await apiClient.post('/post', { action: 'acknowledge_gift', giftId });
+  } catch (err) {
+    const e = getApiError(err);
+    if (e.status !== 0) throw err;
+  }
+  mockGifts = mockGifts.map((g) =>
+    g.id === giftId ? { ...g, acknowledged: true } : g
+  );
+  return mockGifts.find((g) => g.id === giftId)!;
+}
+
+// ---------- Activity feed ----------
+
+let mockActivity: FriendActivity[] = [
+  {
+    id: 'act_1',
+    userId: 'u_alice',
+    userDisplayName: 'Alice',
+    userPetSpecies: 'cat',
+    kind: 'level_up',
+    payload: { level: 12, petName: 'Mochi' },
+    createdAt: Date.now() - 1800000,
+  },
+  {
+    id: 'act_2',
+    userId: 'u_carol',
+    userDisplayName: 'Carol',
+    userPetSpecies: 'dragon',
+    kind: 'achievement',
+    payload: { achievement: 'First Quest Complete' },
+    createdAt: Date.now() - 3600000,
+  },
+  {
+    id: 'act_3',
+    userId: 'u_bob',
+    userDisplayName: 'Bob',
+    userPetSpecies: 'fox',
+    kind: 'gift_sent',
+    payload: { giftType: 'rose', toUserId: 'u_alice' },
+    createdAt: Date.now() - 7200000,
+  },
+];
+let nextActivityId = 100;
+
+export async function listActivityFeed(limit = 50): Promise<FriendActivity[]> {
+  try {
+    await apiClient.get('/get', { params: { action: 'list_activity_feed', limit } });
+  } catch (err) {
+    const e = getApiError(err);
+    if (e.status !== 0) throw err;
+  }
+  return mockActivity.slice(0, limit);
+}
+
+export function pushActivity(activity: Omit<FriendActivity, 'id'>): FriendActivity {
+  nextActivityId += 1;
+  const full: FriendActivity = {
+    ...activity,
+    id: `act_${nextActivityId}`,
+  };
+  mockActivity = [full, ...mockActivity];
+  return full;
 }
 
 // ============================================================================

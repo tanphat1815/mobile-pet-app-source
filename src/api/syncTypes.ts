@@ -43,6 +43,7 @@ export type SyncEventType =
   | 'quest:progress' // quest progress update
   | 'pairing:code' // cross-device pairing code issued
   | 'pairing:confirmed' // pairing confirmed
+  | 'friend:activity' // Step 4 — friend activity event (level up, gift, ...)
   | 'error'; // generic error event
 
 export type ClientMessageType =
@@ -179,6 +180,23 @@ export interface PairingConfirmedEvent {
   pairedUserId: string;
 }
 
+export interface FriendActivityEvent {
+  userId: string;
+  userDisplayName?: string;
+  userPetSpecies?: string;
+  kind:
+    | 'level_up'
+    | 'achievement'
+    | 'new_pet'
+    | 'quest_complete'
+    | 'gift_sent'
+    | 'gift_received'
+    | 'tag_added'
+    | 'friend_joined';
+  payload?: Record<string, unknown>;
+  createdAt?: number;
+}
+
 export interface ErrorEvent {
   code: string;
   message: string;
@@ -203,5 +221,6 @@ export interface SyncEventPayloadMap {
   'quest:progress': QuestProgressEvent;
   'pairing:code': PairingCodeEvent;
   'pairing:confirmed': PairingConfirmedEvent;
+  'friend:activity': FriendActivityEvent;
   error: ErrorEvent;
 }
