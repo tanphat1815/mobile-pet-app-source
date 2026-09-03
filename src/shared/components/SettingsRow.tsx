@@ -66,7 +66,7 @@ export function SettingsRow({
       <View
         style={[
           styles.iconBox,
-          { backgroundColor: theme.isDark ? '#2C2C2E' : '#F2F2F7' },
+          { backgroundColor: theme.colors.surfaceMuted },
         ]}
       >
         <Text style={{ fontSize: 18 }}>{icon}</Text>

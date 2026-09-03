@@ -43,9 +43,9 @@ export function ChatBubble({ message, isOutgoing, showSender = false }: ChatBubb
   const bubbleBg = isOutgoing
     ? theme.colors.accent
     : theme.isDark
-    ? '#2C2C2E'
-    : '#F2F2F7';
-  const textColor = isOutgoing ? '#FFFFFF' : theme.colors.text;
+    ? theme.colors.surface
+    : theme.colors.surfaceMuted;
+  const textColor = isOutgoing ? theme.colors.textInverse : theme.colors.text;
   const subTextColor = isOutgoing ? 'rgba(255,255,255,0.75)' : theme.colors.textSecondary;
 
   return (

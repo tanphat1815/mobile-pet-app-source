@@ -56,7 +56,7 @@ export function ChatInputBar({
         style={[
           styles.inputWrap,
           {
-            backgroundColor: theme.isDark ? '#1C1C1E' : '#F2F2F7',
+            backgroundColor: theme.colors.surface2,
             borderRadius: theme.radius.lg,
           },
         ]}
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   sendText: {
-    color: '#FFFFFF',
+    color: '#FFFFFF', // on-accent white, intentional — both themes
     fontWeight: '700',
     fontSize: 18,
   },

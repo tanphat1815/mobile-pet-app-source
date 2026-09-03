@@ -62,7 +62,9 @@ function ThemedApp() {
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView
+      style={{ flex: 1, backgroundColor: '#FAF7F2' /* Cozy Cream default — see useTheme() for dark */ }}
+    >
       <SafeAreaProvider>
         <ThemedApp />
       </SafeAreaProvider>

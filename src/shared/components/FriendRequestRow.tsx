@@ -59,7 +59,7 @@ export function FriendRequestRow({
           style={[
             styles.avatar,
             {
-              backgroundColor: theme.isDark ? '#2C2C2E' : '#E5E5EA',
+              backgroundColor: theme.isDark ? theme.colors.surface : theme.colors.surfaceMuted,
               borderRadius: 24,
             },
           ]}

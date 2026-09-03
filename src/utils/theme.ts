@@ -18,7 +18,7 @@ import { Platform, ViewStyle } from 'react-native';
 // ============================================================================
 
 const lightColors: Record<string, string> = {
-  // Brand
+  // Brand — Cozy Cream accent (warmer, paired with cream surfaces)
   accent: '#007AFF',
   accentMuted: '#5AC8FA',
 
@@ -28,25 +28,31 @@ const lightColors: Record<string, string> = {
   warning: '#FF9500',
   info: '#5856D6',
 
-  // Surfaces
-  bg: '#F2F2F7',
+  // Surfaces — Cozy Cream palette (port từ desktop `app-themes.js` light)
+  //   --bg-primary: #FAF7F2 (kem ấm, nền app)
+  //   --bg-secondary: #FFFDF9 (kem sáng, surface 2)
+  //   --bg-tertiary: #F2EDE4 (kem đậm, surface 3)
+  //   --bg-elevated: #FFFFFF (trắng, card nổi)
+  bg: '#FAF7F2',
   surface: '#FFFFFF',
-  surface2: '#F2F2F7',
+  surface2: '#FFFDF9',
   surfaceElevated: '#FFFFFF',
+  surfaceMuted: '#F2EDE4',
 
-  // Text
-  text: '#000000',
-  textSecondary: '#8E8E93',
-  textTertiary: '#C7C7CC',
+  // Text — warm tone (port từ desktop text-primary: #1E2024, secondary: #686E78, tertiary: #989EA8)
+  text: '#1E2024',
+  textSecondary: '#686E78',
+  textTertiary: '#989EA8',
   textInverse: '#FFFFFF',
 
-  // Borders & dividers
-  border: '#C6C6C8',
-  separator: 'rgba(60, 60, 67, 0.12)',
+  // Borders & dividers — be ấm (port từ desktop --border: #EAE4D9, --border-strong: #D8D0C2)
+  border: '#EAE4D9',
+  borderStrong: '#D8D0C2',
+  separator: 'rgba(30, 32, 36, 0.08)',
 
   // Overlay
-  overlay: 'rgba(0, 0, 0, 0.4)',
-  scrim: 'rgba(0, 0, 0, 0.2)',
+  overlay: 'rgba(30, 32, 36, 0.4)',
+  scrim: 'rgba(30, 32, 36, 0.2)',
 
   // Pet stats
   statHappiness: '#FF9500',
@@ -55,6 +61,8 @@ const lightColors: Record<string, string> = {
   statHealth: '#FF2D55',
 };
 
+// Dark mode — giữ nguyên giá trị desktop (`--bg-primary: #1C1C1E`, ...).
+// Chỉ update shadowColor từ '#000' sang '#1E2024' để đồng bộ bento warmth với light mode.
 const darkColors: Record<string, string> = {
   accent: '#0A84FF',
   accentMuted: '#64D2FF',
@@ -64,17 +72,19 @@ const darkColors: Record<string, string> = {
   warning: '#FF9F0A',
   info: '#5E5CE6',
 
-  bg: '#000000',
-  surface: '#1C1C1E',
+  bg: '#1C1C1E',
+  surface: '#2C2C2E',
   surface2: '#2C2C2E',
   surfaceElevated: '#2C2C2E',
+  surfaceMuted: '#3A3A3C',
 
-  text: '#FFFFFF',
-  textSecondary: '#98989D',
-  textTertiary: '#48484A',
+  text: '#F2F2F7',
+  textSecondary: '#AEAEB2',
+  textTertiary: '#8E8E93',
   textInverse: '#000000',
 
   border: '#38383A',
+  borderStrong: '#48484A',
   separator: 'rgba(84, 84, 88, 0.65)',
 
   overlay: 'rgba(0, 0, 0, 0.6)',
@@ -168,36 +178,37 @@ export const radius = {
 export type RadiusTokens = typeof radius;
 
 // ============================================================================
-// Shadow / Elevation Tokens
+// Shadow / Elevation Tokens (Bento-style — warm tone, soft blur)
 // ============================================================================
-
+// Port từ desktop `tokens.css` bento canvas: shadow tinh tế, blur rộng, opacity thấp,
+// shadowColor dùng warm tone (#1E2024) để phù hợp Cozy Cream palette thay vì đen lạnh.
 export const shadows: Record<'elevation1' | 'elevation2' | 'elevation3' | 'elevation4', ViewStyle> = {
   elevation1: {
-    shadowColor: '#000',
+    shadowColor: '#1E2024',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
     elevation: 1,
   },
   elevation2: {
-    shadowColor: '#000',
+    shadowColor: '#1E2024',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   elevation3: {
-    shadowColor: '#000',
+    shadowColor: '#1E2024',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.16,
-    shadowRadius: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
     elevation: 4,
   },
   elevation4: {
-    shadowColor: '#000',
+    shadowColor: '#1E2024',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
     elevation: 8,
   },
 };
