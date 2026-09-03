@@ -1,162 +1,56 @@
 /**
  * PetAvatar
  *
- * Big circular display of the pet's avatar (emoji or image URL) with
- * a mood ring around it. Mood color changes the ring color.
+ * Wrapper cho AnimatedPetSprite. Giữ prop interface cũ để các caller không
+ * cần thay đổi. Step 3 — dùng AnimatedPetSprite cho multi-species FSM animation.
+ *
+ * Fallback: nếu không có pet → render mood emoji đơn.
  */
 
-import React, { useEffect } from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
+import React from 'react';
+import { View, Text } from 'react-native';
 import { useTheme } from '../../utils/useTheme';
-import { Pet, defaultEmoji } from '../../api/petTypes';
+import { AnimatedPetSprite } from './AnimatedPetSprite';
+import type { Pet } from '../../api/petTypes';
 
 export interface PetAvatarProps {
-  pet: Pet;
+  pet: Pet | null;
   size?: number;
   reducedMotion?: boolean;
+  /** Override default action — sẽ force 1 FSM animation */
+  action?: 'feed' | 'play' | 'sleep' | 'pet';
+  /** Tắt mood ring */
+  noRing?: boolean;
 }
 
-/**
- * Mood → ring color mapping.
- *
- * Step 1 (Cozy Cream parity): chuyển sang warm tone để hợp với kem background
- * (xem desktop `app-themes.js` accent: '#FF9500' warning, dark accent gradient).
- * Mỗi mood có tone riêng:
- *   - happy:    cam ấm #FF9F1C (hợp cozy)
- *   - sad:      hồng pastel #FFB6C1 (không đỏ gắt như theme.danger)
- *   - eating:   vàng mật ong #FFB627 (thay vì warning cam lạnh)
- *   - sleeping: xám lavender be #B8B0A0
- *   - playing:  xanh lam sáng #5AC8FA (giữ accentMuted)
- *   - idle:     be xám border #D8D0C2
- */
-function moodColor(mood: Pet['mood'], theme: ReturnType<typeof useTheme>): string {
-  switch (mood) {
-    case 'happy':
-      return '#FF9F1C';
-    case 'sad':
-      return '#FFB6C1';
-    case 'eating':
-      return '#FFB627';
-    case 'sleeping':
-      return '#B8B0A0';
-    case 'playing':
-      return theme.colors.accentMuted;
-    case 'idle':
-    default:
-      return theme.colors.borderStrong;
-  }
-}
-
-function moodEmoji(mood: Pet['mood']): string {
-  switch (mood) {
-    case 'happy':
-      return '😊';
-    case 'sad':
-      return '😢';
-    case 'eating':
-      return '😋';
-    case 'sleeping':
-      return '😴';
-    case 'playing':
-      return '🥳';
-    case 'idle':
-    default:
-      return '😐';
-  }
-}
-
-export function PetAvatar({ pet, size = 140, reducedMotion = false }: PetAvatarProps) {
+export function PetAvatar({ pet, size = 140, reducedMotion, action, noRing }: PetAvatarProps) {
   const theme = useTheme();
-  const wobble = useSharedValue(0);
 
-  useEffect(() => {
-    if (reducedMotion) {
-      wobble.value = 0;
-      return;
-    }
-    wobble.value = withRepeat(
-      withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
-      -1,
-      true
+  if (!pet) {
+    return (
+      <View
+        testID="pet-avatar-empty"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: theme.colors.surfaceMuted,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Text style={{ fontSize: size * 0.5 }}>🐾</Text>
+      </View>
     );
-  }, [reducedMotion, wobble]);
-
-  const ringColor = moodColor(pet.mood, theme);
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${wobble.value * 3 - 1.5}deg` }],
-  }));
-
-  const ringWidth = 6;
-  const ringPadding = 6;
+  }
 
   return (
-    <View style={styles.root}>
-      <Animated.View
-        style={[
-          styles.ring,
-          {
-            width: size + ringWidth * 2 + ringPadding * 2,
-            height: size + ringWidth * 2 + ringPadding * 2,
-            borderRadius: (size + ringWidth * 2 + ringPadding * 2) / 2,
-            borderColor: ringColor,
-            borderWidth: ringWidth,
-            backgroundColor: theme.colors.surface,
-          },
-          animatedStyle,
-        ]}
-      >
-        {pet.avatarUrl ? (
-          <Image
-            source={{ uri: pet.avatarUrl }}
-            style={{
-              width: size,
-              height: size,
-              borderRadius: size / 2,
-            }}
-          />
-        ) : (
-          <Text style={{ fontSize: size * 0.55 }}>
-            {pet.emoji ?? defaultEmoji(pet.species)}
-          </Text>
-        )}
-      </Animated.View>
-      <View
-        style={[
-          styles.moodBadge,
-          {
-            backgroundColor: ringColor,
-            borderColor: theme.colors.surface,
-          },
-        ]}
-      >
-        <Text style={{ fontSize: 18 }}>{moodEmoji(pet.mood)}</Text>
-      </View>
-    </View>
+    <AnimatedPetSprite
+      pet={pet}
+      size={size}
+      action={action}
+      showMoodRing={!noRing}
+      reducedMotion={reducedMotion}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  root: { alignItems: 'center', justifyContent: 'center' },
-  ring: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  moodBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-  },
-});

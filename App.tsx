@@ -16,6 +16,8 @@ import { StatusBar } from 'expo-status-bar';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { SyncLifecycle } from './src/stores/SyncLifecycle';
 import { NotificationLifecycle } from './src/stores/NotificationLifecycle';
+import { usePetRealtimeSync } from './src/stores/PetStore';
+import { PetSpriteDebugProvider } from './src/shared/components/PetSpriteDebugProvider';
 import { useTheme } from './src/utils/useTheme';
 import { logRuntimeConfig } from './src/utils/runtimeConfig';
 import { useSettingsStore } from './src/stores/SettingsStore';
@@ -45,6 +47,8 @@ function DecorationsHost() {
 
 function ThemedApp() {
   const theme = useTheme();
+  // Mount PetStore side-effects (realtime sync)
+  usePetRealtimeSync();
 
   useEffect(() => {
     logRuntimeConfig();
@@ -77,6 +81,7 @@ function ThemedApp() {
 
   return (
     <NavigationContainer theme={navTheme}>
+      <PetSpriteDebugProvider />
       <StatusBar style={theme.isDark ? 'light' : 'dark'} />
       <SyncLifecycle>
         <NotificationLifecycle>
