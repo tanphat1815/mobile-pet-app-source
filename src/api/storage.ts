@@ -44,6 +44,9 @@ export const StorageKeys = {
   AdventureCurrent: 'adventure.current',
   AdventureHistory: 'adventure.history',
   AdventureUnlocked: 'adventure.unlocked_locations',
+  // Step 12d — AI Chatbot BYOK
+  AISettings: 'ai.settings',
+  AIHistory: 'ai.history',
 } as const;
 
 export type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys];
