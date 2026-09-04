@@ -12,6 +12,7 @@ import {
   Pet,
   PetAction,
   defaultEmoji,
+  applyCareEffect,
 } from '../api/petTypes';
 import type { PetUpdateEvent, PetMoodEvent } from '../api/syncTypes';
 import { useSyncEvent } from './SyncStore';
@@ -70,9 +71,20 @@ export const usePetStore = create<PetState>((set, get) => ({
     if (!pet) {
       await get().load();
     }
+    const petNow = get().pet;
+    if (!petNow) return;
+
+    // Step 10 — Pre-check cooldown + precondition so we fail fast
+    // and don't even apply an optimistic update.
+    const { isActionAvailable, actionDisabledReason } = await import('../api/petTypes');
+    if (!isActionAvailable(petNow, action)) {
+      const reason = actionDisabledReason(petNow, action) ?? 'Not available';
+      set({ error: reason });
+      return;
+    }
 
     // Optimistic update: apply the action locally for instant feedback
-    const optimisticPet = applyActionLocally(get().pet, action);
+    const optimisticPet = applyActionLocally(petNow, action);
 
     const next = new Set(pendingActions);
     next.add(action);
@@ -88,9 +100,9 @@ export const usePetStore = create<PetState>((set, get) => ({
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : `Failed to ${action}`;
-      // Roll back optimistic update
+      // Roll back optimistic update to the pre-action pet
       set({
-        pet: get().pet, // server response wins
+        pet: petNow,
         pendingActions: removeFromSet(get().pendingActions, action),
         error: msg,
       });
@@ -126,47 +138,9 @@ function removeFromSet(set: Set<PetAction>, action: PetAction): Set<PetAction> {
 
 function applyActionLocally(pet: Pet | null, action: PetAction): Pet | null {
   if (!pet) return pet;
-  const stats = { ...pet.stats };
-  let mood: Pet['mood'] = pet.mood;
-  switch (action) {
-    case 'feed':
-      stats.hunger = Math.min(100, stats.hunger + 30);
-      stats.happiness = Math.min(100, stats.happiness + 5);
-      stats.xp += 15;
-      mood = 'eating';
-      break;
-    case 'play':
-      stats.happiness = Math.min(100, stats.happiness + 25);
-      stats.energy = Math.max(0, stats.energy - 15);
-      stats.hunger = Math.max(0, stats.hunger - 10);
-      stats.xp += 20;
-      mood = 'playing';
-      break;
-    case 'sleep':
-      stats.energy = Math.min(100, stats.energy + 40);
-      stats.hunger = Math.max(0, stats.hunger - 10);
-      stats.xp += 5;
-      mood = 'sleeping';
-      break;
-    case 'pet':
-      stats.happiness = Math.min(100, stats.happiness + 10);
-      stats.xp += 3;
-      mood = 'happy';
-      break;
-  }
-  let { level } = stats;
-  let xp = stats.xp;
-  const xpNeeded = Math.round(100 * Math.pow(level, 1.5));
-  while (xp >= xpNeeded) {
-    xp -= xpNeeded;
-    level += 1;
-  }
-  return {
-    ...pet,
-    stats: { ...stats, xp, level },
-    mood,
-    updatedAt: Date.now(),
-  };
+  // Step 10 — Delegate to the unified applyCareEffect helper so the
+  // local mock and the UI stay in sync.
+  return applyCareEffect(pet, action);
 }
 
 // Dev helpers đã chuyển sang PetSpriteDebugProvider (root-mount).
