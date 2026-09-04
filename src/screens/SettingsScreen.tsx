@@ -1,16 +1,15 @@
 /**
  * SettingsScreen
  *
- * Settings for the current user. Sections:
- *   - Account (Profile, Sign out)
- *   - Appearance (Theme, Reduced motion)
- *   - Notifications (Enabled, Quiet hours, Marketing emails)
- *   - Privacy & Security (Biometric login, Online status, Friend
- *     requests, Auto-pair)
- *   - About (Version, Build, Open source)
+ * Step 11 — refactor:
+ *   - SettingsSearch bar at top (debounced 150ms)
+ *   - Sections grouped into 4 categories (GENERAL / PET / SOCIAL / ADVANCED)
+ *   - Collapsible groups, persisted to AsyncStorage
+ *   - Each SettingRow maps to an existing SettingsRow (rendered as before)
+ *     but the grouping/filter happens here so the list can be searched.
  */
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,12 +17,20 @@ import {
   StyleSheet,
   Alert,
   Platform,
+  Pressable,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { useTheme } from '../utils/useTheme';
 import { useSettingsStore } from '../stores/SettingsStore';
 import { useAuthStore } from '../stores/AuthStore';
 import { SettingsSection } from '../shared/components/SettingsSection';
 import { SettingsRow } from '../shared/components/SettingsRow';
+import { SettingsSearch } from '../shared/components/SettingsSearch';
 import { Modal } from '../shared/components/Modal';
 import { Button } from '../shared/components/Button';
 import { SegmentedTabs, TabItem } from '../shared/components/SegmentedTabs';
@@ -35,8 +42,16 @@ import {
   getThemeMeta,
   isThemeUnlocked,
 } from '../utils/appThemes';
-import { hapticLight } from '../utils/haptics';
+import { hapticLight, hapticSelection } from '../utils/haptics';
 import { friendRequestLabel, themeLabel } from '../api/settingsTypes';
+import { SETTINGS_GROUPS } from '../api/settingsGroups';
+import {
+  filterRows,
+  totalRowCount,
+  matchCount,
+  buildSearchIndex,
+  SettingSearchableRow,
+} from '../api/settingsCategories';
 import { getBiometricCapability, biometryLabel } from '../api/biometric';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../navigation/types';
@@ -52,6 +67,10 @@ export function SettingsScreen({ navigation }: Props) {
   const loadAll = useSettingsStore((s) => s.loadAll);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
   const setAppTheme = useSettingsStore((s) => s.setAppTheme);
+  const expandedGroups = useSettingsStore((s) => s.expandedGroups);
+  const hydrateExpandedGroups = useSettingsStore((s) => s.hydrateExpandedGroups);
+  const toggleGroup = useSettingsStore((s) => s.toggleGroup);
+
   const setBiometricEnabledPreference = useAuthStore(
     (s) => s.setBiometricEnabledPreference
   );
@@ -61,10 +80,25 @@ export function SettingsScreen({ navigation }: Props) {
   const [themeModalOpen, setThemeModalOpen] = React.useState(false);
   const [appThemeModalOpen, setAppThemeModalOpen] = React.useState(false);
   const [friendRequestModalOpen, setFriendRequestModalOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
 
   useEffect(() => {
     if (status === 'idle') loadAll();
-  }, [status, loadAll]);
+    hydrateExpandedGroups();
+  }, [status, loadAll, hydrateExpandedGroups]);
+
+  const filteredGroups = useMemo(
+    () => filterRows(SETTINGS_GROUPS, searchQuery),
+    [searchQuery]
+  );
+
+  const totalRows = useMemo(() => totalRowCount(SETTINGS_GROUPS), []);
+  const matchRows = useMemo(
+    () => matchCount(SETTINGS_GROUPS, searchQuery),
+    [searchQuery]
+  );
+
+  const index = useMemo(() => buildSearchIndex(SETTINGS_GROUPS), []);
 
   const handleLogout = useCallback(() => {
     Alert.alert('Sign out?', 'You can sign back in any time.', [
@@ -109,6 +143,330 @@ export function SettingsScreen({ navigation }: Props) {
     { key: 'friends_of_friends', label: 'Friends of friends' },
   ];
 
+  /**
+   * Renders a single row (from the SETTINGS_GROUPS tree) by mapping its
+   * id back to the original inline SettingsRow definition.
+   */
+  const renderRow = useCallback(
+    (row: SettingSearchableRow, isLast: boolean) => {
+      switch (row.id) {
+        // GENERAL > Account
+        case 'account-profile':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="👤"
+              label={row.label}
+              subtitle={row.description}
+              onPress={() => navigation.navigate('Profile')}
+              isLast={isLast}
+            />
+          );
+        case 'account-signout':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="🚪"
+              label={row.label}
+              variant="destructive"
+              onPress={handleLogout}
+              type="navigation"
+              isLast={isLast}
+            />
+          );
+        // GENERAL > Appearance
+        case 'appearance-theme':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="🎨"
+              label={row.label}
+              type="value"
+              value={themeLabel(settings.theme)}
+              onPress={() => setThemeModalOpen(true)}
+              isLast={isLast}
+            />
+          );
+        case 'appearance-app-theme':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="🎭"
+              label={row.label}
+              subtitle={getThemeMeta(settings.appThemeId).name}
+              type="value"
+              value={
+                settings.appThemeId === 'auto'
+                  ? 'Auto'
+                  : getThemeMeta(settings.appThemeId).icon
+              }
+              onPress={() => setAppThemeModalOpen(true)}
+              isLast={isLast}
+            />
+          );
+        case 'appearance-reduce-motion':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="♿"
+              label={row.label}
+              type="toggle"
+              toggleValue={settings.reducedMotionOverride === 'on'}
+              onToggle={(v) =>
+                updateSetting('reducedMotionOverride', v ? 'on' : 'off')
+              }
+              subtitle={row.description}
+              isLast={isLast}
+            />
+          );
+        // GENERAL > Notifications
+        case 'notifications-push':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="🔔"
+              label={row.label}
+              type="toggle"
+              toggleValue={settings.notificationsEnabled}
+              onToggle={(v) => updateSetting('notificationsEnabled', v)}
+              isLast={isLast}
+            />
+          );
+        case 'notifications-quiet-hours':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="🌙"
+              label={row.label}
+              subtitle={
+                settings.quietHoursEnabled && settings.quietHoursStart
+                  ? `${settings.quietHoursStart} – ${settings.quietHoursEnd}`
+                  : 'Off'
+              }
+              type="toggle"
+              toggleValue={settings.quietHoursEnabled}
+              onToggle={(v) => updateSetting('quietHoursEnabled', v)}
+              isLast={isLast}
+            />
+          );
+        case 'notifications-marketing':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="📧"
+              label={row.label}
+              type="toggle"
+              toggleValue={settings.marketingEmails}
+              onToggle={(v) => updateSetting('marketingEmails', v)}
+              isLast={isLast}
+            />
+          );
+        // SOCIAL > Privacy & Security
+        case 'privacy-biometric':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="🔒"
+              label={row.label}
+              subtitle={
+                settings.biometricEnabled ? 'Enabled' : 'Use OTP instead'
+              }
+              type="toggle"
+              toggleValue={settings.biometricEnabled}
+              onToggle={handleBiometricToggle}
+              isLast={isLast}
+            />
+          );
+        case 'privacy-online-status':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="🟢"
+              label={row.label}
+              type="toggle"
+              toggleValue={settings.showOnlineStatus}
+              onToggle={(v) => updateSetting('showOnlineStatus', v)}
+              isLast={isLast}
+            />
+          );
+        case 'privacy-friend-requests':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="🤝"
+              label={row.label}
+              type="value"
+              value={friendRequestLabel(settings.allowFriendRequests)}
+              onPress={() => setFriendRequestModalOpen(true)}
+              isLast={isLast}
+            />
+          );
+        case 'privacy-auto-pair':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="🔗"
+              label={row.label}
+              type="toggle"
+              toggleValue={settings.autoPairKnownDevices}
+              onToggle={(v) => updateSetting('autoPairKnownDevices', v)}
+              isLast={isLast}
+            />
+          );
+        // SOCIAL > Pairing (navigate to Pairing screen)
+        case 'social-pairing':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="🔗"
+              label={row.label}
+              subtitle={row.description}
+              onPress={() => navigation.navigate('Pairing')}
+              isLast={isLast}
+            />
+          );
+        case 'social-friends':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="👥"
+              label={row.label}
+              subtitle={row.description}
+              onPress={() => navigation.navigate('Friends')}
+              isLast={isLast}
+            />
+          );
+        // PET > Pet Settings
+        case 'pet-actions-info':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="🩺"
+              label={row.label}
+              subtitle={row.description}
+              type="value"
+              value="7"
+              isLast={isLast}
+            />
+          );
+        case 'pet-cooldowns':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="⏱"
+              label={row.label}
+              subtitle={row.description}
+              type="value"
+              value="8h / 6h"
+              isLast={isLast}
+            />
+          );
+        // PET > Care & Items
+        case 'care-cleanliness':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="🛁"
+              label={row.label}
+              subtitle={row.description}
+              type="value"
+              value="50%"
+              isLast={isLast}
+            />
+          );
+        case 'care-health':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="💊"
+              label={row.label}
+              subtitle={row.description}
+              type="value"
+              value="80%"
+              isLast={isLast}
+            />
+          );
+        // ADVANCED > Accessibility
+        case 'accessibility-reduced-motion':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="♿"
+              label={row.label}
+              type="toggle"
+              toggleValue={settings.reducedMotionOverride === 'on'}
+              onToggle={(v) =>
+                updateSetting('reducedMotionOverride', v ? 'on' : 'off')
+              }
+              isLast={isLast}
+            />
+          );
+        case 'accessibility-haptics':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="📳"
+              label={row.label}
+              subtitle={row.description}
+              type="value"
+              value="Default"
+              isLast={isLast}
+            />
+          );
+        // ADVANCED > About
+        case 'about-version':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="📦"
+              label={row.label}
+              type="value"
+              value="0.1.0 (build 1)"
+              isLast={isLast}
+            />
+          );
+        case 'about-platform':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="📱"
+              label={row.label}
+              type="value"
+              value={Platform.OS}
+              isLast={isLast}
+            />
+          );
+        case 'about-licenses':
+          return (
+            <SettingsRow
+              key={row.id}
+              icon="🌐"
+              label={row.label}
+              onPress={() =>
+                Alert.alert(
+                  'Licenses',
+                  'MIT — Mobile Pet (tanphat1815/mobile-pet-app-source)'
+                )
+              }
+              isLast={isLast}
+            />
+          );
+        default:
+          return null;
+      }
+    },
+    [
+      navigation,
+      handleLogout,
+      setThemeModalOpen,
+      setAppThemeModalOpen,
+      setFriendRequestModalOpen,
+      settings,
+      updateSetting,
+      handleBiometricToggle,
+    ]
+  );
+
   return (
     <View style={[styles.root, { backgroundColor: theme.colors.bg }]}>
       <View
@@ -144,16 +502,35 @@ export function SettingsScreen({ navigation }: Props) {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingBottom: theme.spacing.xxxl }}
+        contentContainerStyle={{
+          paddingBottom: theme.spacing.xxxl,
+          paddingHorizontal: theme.spacing.lg,
+        }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
+        {/* Step 11 — search bar */}
+        <SettingsSearch onChange={setSearchQuery} />
+
+        {searchQuery ? (
+          <Text
+            testID="settings-search-count"
+            style={{
+              color: theme.colors.textSecondary,
+              fontSize: theme.typography.size.footnote,
+              paddingBottom: theme.spacing.sm,
+            }}
+          >
+            {matchRows} of {totalRows} match{searchQuery ? ` "${searchQuery}"` : ''}
+          </Text>
+        ) : null}
+
         {error ? (
           <Text
             style={{
               color: theme.colors.danger,
               fontSize: theme.typography.size.footnote,
               textAlign: 'center',
-              paddingHorizontal: theme.spacing.lg,
               paddingVertical: theme.spacing.sm,
             }}
           >
@@ -161,146 +538,47 @@ export function SettingsScreen({ navigation }: Props) {
           </Text>
         ) : null}
 
-        {/* Account */}
-        <SettingsSection title="Account">
-          <SettingsRow
-            icon="👤"
-            label="Profile"
-            subtitle="Display name, avatar"
-            onPress={() => navigation.navigate('Profile')}
-          />
-          <SettingsRow
-            icon="🚪"
-            label="Sign out"
-            variant="destructive"
-            onPress={handleLogout}
-            type="navigation"
-          />
-        </SettingsSection>
-
-        {/* Appearance */}
-        <SettingsSection title="Appearance">
-          <SettingsRow
-            icon="🎨"
-            label="Theme"
-            type="value"
-            value={themeLabel(settings.theme)}
-            onPress={() => setThemeModalOpen(true)}
-          />
-          <SettingsRow
-            icon="🎭"
-            label="App theme"
-            subtitle={getThemeMeta(settings.appThemeId).name}
-            type="value"
-            value={
-              settings.appThemeId === 'auto' ? 'Auto' : getThemeMeta(settings.appThemeId).icon
-            }
-            onPress={() => setAppThemeModalOpen(true)}
-          />
-          <SettingsRow
-            icon="♿"
-            label="Reduce motion"
-            type="toggle"
-            toggleValue={settings.reducedMotionOverride === 'on'}
-            onToggle={(v) =>
-              updateSetting('reducedMotionOverride', v ? 'on' : 'off')
-            }
-            subtitle="Limit animations across the app"
-            isLast
-          />
-        </SettingsSection>
-
-        {/* Notifications */}
-        <SettingsSection title="Notifications">
-          <SettingsRow
-            icon="🔔"
-            label="Push notifications"
-            type="toggle"
-            toggleValue={settings.notificationsEnabled}
-            onToggle={(v) => updateSetting('notificationsEnabled', v)}
-          />
-          <SettingsRow
-            icon="🌙"
-            label="Quiet hours"
-            subtitle={
-              settings.quietHoursEnabled && settings.quietHoursStart
-                ? `${settings.quietHoursStart} – ${settings.quietHoursEnd}`
-                : 'Off'
-            }
-            type="toggle"
-            toggleValue={settings.quietHoursEnabled}
-            onToggle={(v) => updateSetting('quietHoursEnabled', v)}
-          />
-          <SettingsRow
-            icon="📧"
-            label="Product updates"
-            type="toggle"
-            toggleValue={settings.marketingEmails}
-            onToggle={(v) => updateSetting('marketingEmails', v)}
-            isLast
-          />
-        </SettingsSection>
-
-        {/* Privacy & Security */}
-        <SettingsSection title="Privacy & Security">
-          <SettingsRow
-            icon="🔒"
-            label="Biometric login"
-            subtitle={settings.biometricEnabled ? 'Enabled' : 'Use OTP instead'}
-            type="toggle"
-            toggleValue={settings.biometricEnabled}
-            onToggle={handleBiometricToggle}
-          />
-          <SettingsRow
-            icon="🟢"
-            label="Show online status"
-            type="toggle"
-            toggleValue={settings.showOnlineStatus}
-            onToggle={(v) => updateSetting('showOnlineStatus', v)}
-          />
-          <SettingsRow
-            icon="🤝"
-            label="Friend requests from"
-            type="value"
-            value={friendRequestLabel(settings.allowFriendRequests)}
-            onPress={() => setFriendRequestModalOpen(true)}
-          />
-          <SettingsRow
-            icon="🔗"
-            label="Auto-pair known devices"
-            type="toggle"
-            toggleValue={settings.autoPairKnownDevices}
-            onToggle={(v) => updateSetting('autoPairKnownDevices', v)}
-            isLast
-          />
-        </SettingsSection>
-
-        {/* About */}
-        <SettingsSection title="About">
-          <SettingsRow
-            icon="📦"
-            label="Version"
-            type="value"
-            value="0.1.0 (build 1)"
-          />
-          <SettingsRow
-            icon="📱"
-            label="Platform"
-            type="value"
-            value={Platform.OS}
-          />
-          <SettingsRow
-            icon="🌐"
-            label="Open source licenses"
-            onPress={() =>
-              Alert.alert(
-                'Licenses',
-                'MIT — Mobile Pet (tanphat1815/mobile-pet-app-source)'
-              )
-            }
-            isLast
-          />
-        </SettingsSection>
+        {filteredGroups.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={{ fontSize: 40 }}>🔍</Text>
+            <Text
+              style={{
+                color: theme.colors.textSecondary,
+                fontSize: theme.typography.size.subhead,
+                marginTop: 8,
+                fontWeight: '500',
+              }}
+              testID="settings-empty-state"
+            >
+              {`No settings match "${searchQuery}"`}
+            </Text>
+          </View>
+        ) : (
+          filteredGroups.map((group) => {
+            const isExpanded = expandedGroups[group.id] ?? false;
+            return (
+              <CollapsibleGroup
+                key={group.id}
+                groupId={group.id}
+                label={group.label}
+                expanded={isExpanded}
+                onToggle={(next) => toggleGroup(group.id, next)}
+                sectionCount={group.sections.length}
+              >
+                {group.sections.map((section) => (
+                  <SettingsSection
+                    key={section.id}
+                    title={section.title}
+                  >
+                    {section.rows.map((row, idx) =>
+                      renderRow(row, idx === section.rows.length - 1)
+                    )}
+                  </SettingsSection>
+                ))}
+              </CollapsibleGroup>
+            );
+          })
+        )}
 
         {saving ? (
           <Text
@@ -404,7 +682,126 @@ export function SettingsScreen({ navigation }: Props) {
   );
 }
 
+// ============================================================================
+// Collapsible group
+// ============================================================================
+
+interface CollapsibleGroupProps {
+  groupId: string;
+  label: string;
+  expanded: boolean;
+  onToggle: (next: boolean) => void;
+  sectionCount: number;
+  children: React.ReactNode;
+}
+
+function CollapsibleGroup({
+  groupId,
+  label,
+  expanded,
+  onToggle,
+  sectionCount,
+  children,
+}: CollapsibleGroupProps) {
+  const theme = useTheme();
+  const rotation = useSharedValue(expanded ? 1 : 0);
+  const heightFactor = useSharedValue(expanded ? 1 : 0);
+
+  useEffect(() => {
+    rotation.value = withTiming(expanded ? 1 : 0, {
+      duration: 200,
+      easing: Easing.out(Easing.quad),
+    });
+    heightFactor.value = withTiming(expanded ? 1 : 0, {
+      duration: 220,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [expanded, rotation, heightFactor]);
+
+  const arrowStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value * 90}deg` }],
+  }));
+
+  return (
+    <View style={styles.groupRoot}>
+      <Pressable
+        testID={`group-header-${groupId}`}
+        onPress={() => {
+          hapticSelection();
+          onToggle(!expanded);
+        }}
+        style={({ pressed }) => [
+          styles.groupHeader,
+          {
+            opacity: pressed ? 0.7 : 1,
+          },
+        ]}
+      >
+        <Animated.Text
+          style={[
+            styles.groupArrow,
+            { color: theme.colors.textSecondary },
+            arrowStyle,
+          ]}
+        >
+          ›
+        </Animated.Text>
+        <Text
+          style={[
+            styles.groupLabel,
+            {
+              color: theme.colors.text,
+              fontSize: theme.typography.size.headline,
+            },
+          ]}
+        >
+          {label}
+        </Text>
+        <Text
+          style={[
+            styles.groupCount,
+            {
+              color: theme.colors.textSecondary,
+              fontSize: theme.typography.size.footnote,
+            },
+          ]}
+        >
+          {sectionCount} section{sectionCount === 1 ? '' : 's'}
+        </Text>
+      </Pressable>
+      {expanded ? children : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
   header: {},
+  groupRoot: {
+    marginTop: 8,
+  },
+  groupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.08)',
+  },
+  groupArrow: {
+    fontSize: 22,
+    marginRight: 8,
+    width: 16,
+  },
+  groupLabel: {
+    flex: 1,
+    fontWeight: '700',
+  },
+  groupCount: {
+    fontVariant: ['tabular-nums'],
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 60,
+    gap: 8,
+  },
 });

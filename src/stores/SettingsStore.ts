@@ -17,8 +17,9 @@ import {
 } from '../api/settings';
 import { UserSettings, DEFAULT_SETTINGS } from '../api/settingsTypes';
 import { ThemeId, isThemeUnlocked } from '../utils/appThemes';
-import { AuthUser } from '../api/storage';
+import { AuthUser, storage, StorageKeys } from '../api/storage';
 import { getApiError } from '../api/client';
+import { DEFAULT_EXPANDED_GROUPS } from '../api/settingsCategories';
 
 // ============================================================================
 // Types
@@ -41,6 +42,13 @@ export interface SettingsState {
   /** Last saved profile snapshot (for rollback) */
   profileSnapshot: AuthUser | null;
 
+  // Step 11 — collapsed groups persistence
+  expandedGroups: Record<string, boolean>;
+  hydrateExpandedGroups: () => Promise<void>;
+  toggleGroup: (groupId: string, expanded: boolean) => void;
+  expandAllGroups: () => void;
+  collapseAllGroups: () => void;
+
   loadAll: () => Promise<void>;
   loadStats: () => Promise<void>;
   updateSetting: <K extends keyof UserSettings>(
@@ -60,6 +68,23 @@ export interface SettingsState {
 // Store
 // ============================================================================
 
+// ============================================================================
+// Persistence helpers — Step 11
+// ============================================================================
+
+async function persistExpandedGroups(
+  groups: Record<string, boolean>
+): Promise<void> {
+  try {
+    await storage.setJSON(
+      StorageKeys.SettingsExpandedGroups,
+      groups
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: DEFAULT_SETTINGS,
   status: 'idle',
@@ -70,6 +95,49 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   stats: null,
   statsStatus: 'idle',
   profileSnapshot: null,
+  expandedGroups: { ...DEFAULT_EXPANDED_GROUPS },
+
+  // ============================================================================
+  // Step 11 — expanded-groups actions
+  // ============================================================================
+
+  hydrateExpandedGroups: async () => {
+    const stored = await storage.getJSON<Record<string, boolean>>(
+      StorageKeys.SettingsExpandedGroups
+    );
+    if (!stored) return;
+    set({
+      expandedGroups: { ...DEFAULT_EXPANDED_GROUPS, ...stored },
+    });
+  },
+
+  toggleGroup: (groupId, expanded) => {
+    const next = { ...get().expandedGroups, [groupId]: expanded };
+    set({ expandedGroups: next });
+    persistExpandedGroups(next);
+  },
+
+  expandAllGroups: () => {
+    const next = {
+      GENERAL: true,
+      PET: true,
+      SOCIAL: true,
+      ADVANCED: true,
+    };
+    set({ expandedGroups: next });
+    persistExpandedGroups(next);
+  },
+
+  collapseAllGroups: () => {
+    const next = {
+      GENERAL: false,
+      PET: false,
+      SOCIAL: false,
+      ADVANCED: false,
+    };
+    set({ expandedGroups: next });
+    persistExpandedGroups(next);
+  },
 
   loadAll: async () => {
     set({ status: 'loading', error: null });

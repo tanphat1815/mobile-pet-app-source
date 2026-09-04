@@ -32,6 +32,7 @@ export const StorageKeys = {
   LastNotification: 'notifications.last',
   NotificationHistory: 'notifications.history', // Step 9 — in-app notification center
   UserSettings: 'settings.user_settings',
+  SettingsExpandedGroups: 'settings.expanded_groups', // Step 11 — collapsed groups
 } as const;
 
 export type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys];
