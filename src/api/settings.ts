@@ -66,6 +66,12 @@ import { AuthUser } from './storage';
 export interface UpdateProfileInput {
   displayName?: string;
   avatarUrl?: string;
+  bio?: string;
+  title?: string;
+  bannerUrl?: string | null;
+  frameId?: string;
+  socials?: AuthUser['socials'];
+  friendCode?: string;
 }
 
 export async function updateProfile(
@@ -82,10 +88,17 @@ export async function updateProfile(
   }
   const current = await storage.getJSON<AuthUser>(StorageKeys.AuthUser);
   if (!current) throw new Error('Not signed in');
+  // Step 7 — extend AuthUser with rich profile fields when present.
   const updated: AuthUser = {
     ...current,
     displayName: input.displayName ?? current.displayName,
     avatarUrl: input.avatarUrl ?? current.avatarUrl,
+    bio: input.bio ?? current.bio ?? '',
+    title: input.title ?? current.title ?? '',
+    bannerUrl: input.bannerUrl !== undefined ? input.bannerUrl : current.bannerUrl ?? null,
+    frameId: input.frameId ?? current.frameId ?? 'none',
+    socials: input.socials ?? current.socials ?? {},
+    friendCode: input.friendCode ?? current.friendCode,
   };
   await storage.setJSON(StorageKeys.AuthUser, updated);
   return updated;

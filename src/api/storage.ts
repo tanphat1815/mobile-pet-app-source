@@ -108,6 +108,19 @@ export interface AuthUser {
   displayName?: string;
   avatarUrl?: string;
   createdAt: number;
+  // Step 7 — Rich Profile fields (optional for backward-compat)
+  bio?: string;
+  title?: string;
+  bannerUrl?: string | null;
+  frameId?: string;
+  socials?: {
+    discord?: string;
+    twitter?: string;
+    instagram?: string;
+    tiktok?: string;
+    twitch?: string;
+  };
+  friendCode?: string;
 }
 
 export async function getStoredToken(): Promise<string | null> {
