@@ -38,6 +38,8 @@ export type MainStackParamList = {
   // Step 12d — AI Chatbot BYOK
   AIChat: undefined;
   AISettings: undefined;
+  // Step 12e — Pet Tricks
+  TricksHome: undefined;
 };
 
 export type AuthStackParamList = {

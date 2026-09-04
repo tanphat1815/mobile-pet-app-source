@@ -546,6 +546,39 @@ export function HomeScreen({ navigation }: Props) {
         </View>
       </Card>
 
+      {/* Pet Tricks quick-link */}
+      <Card style={styles.section}>
+        <View style={styles.chatLinkRow}>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                color: theme.colors.text,
+                fontSize: theme.typography.size.headline,
+                fontWeight: '600',
+              }}
+            >
+              🎓 Tricks
+            </Text>
+            <Text
+              style={{
+                color: theme.colors.textSecondary,
+                fontSize: theme.typography.size.subhead,
+                marginTop: 2,
+              }}
+            >
+              8 kỹ năng · Huấn luyện · Biểu diễn · Cooldown 15s
+            </Text>
+          </View>
+          <Button
+            title="Open"
+            onPress={() => navigation.navigate('TricksHome')}
+            variant="primary"
+            size="sm"
+            testID="home-tricks-open"
+          />
+        </View>
+      </Card>
+
       {/* Achievements quick-link */}
       <Card style={styles.section}>
         <View style={styles.chatLinkRow}>
