@@ -3,6 +3,9 @@
  *
  * Read-only viewer for achievements + quests. Lazy-loads on first
  * mount and subscribes to realtime updates.
+ *
+ * Step 8 — unlockedQueue for toast notifications. Realtime
+ * achievement:unlocked events push to queue and trigger toast.
  */
 
 import { create } from 'zustand';
@@ -37,6 +40,8 @@ export interface AchievementState {
   rerolling: boolean;
   lastClaimedCoins: number;
   lastClaimedXP: number;
+  /** Step 8 — queue of unlocked achievements pending toast */
+  unlockedQueue: Achievement[];
 
   loadAll: () => Promise<void>;
   loadAchievements: () => Promise<void>;
@@ -44,6 +49,8 @@ export interface AchievementState {
   loadStreak: () => Promise<void>;
   claimReward: (questId: string) => Promise<{ coins: number; xp: number }>;
   reroll: (questId: string) => Promise<void>;
+  /** Step 8 — pop next toast achievement from queue */
+  popToastAchievement: () => Achievement | undefined;
   reset: () => void;
 }
 
@@ -61,6 +68,7 @@ export const useAchievementStore = create<AchievementState>((set, get) => ({
   rerolling: false,
   lastClaimedCoins: 0,
   lastClaimedXP: 0,
+  unlockedQueue: [],
 
   loadAll: async () => {
     set({ status: 'loading', error: null });
@@ -149,6 +157,14 @@ export const useAchievementStore = create<AchievementState>((set, get) => ({
     }
   },
 
+  popToastAchievement: () => {
+    const { unlockedQueue } = get();
+    if (unlockedQueue.length === 0) return undefined;
+    const [first, ...rest] = unlockedQueue;
+    set({ unlockedQueue: rest });
+    return first;
+  },
+
   reset: () => {
     set({
       achievements: [],
@@ -160,6 +176,7 @@ export const useAchievementStore = create<AchievementState>((set, get) => ({
       rerolling: false,
       lastClaimedCoins: 0,
       lastClaimedXP: 0,
+      unlockedQueue: [],
     });
   },
 }));
@@ -178,8 +195,8 @@ export function useAchievementRealtimeSync(): void {
 
   useSyncEvent('achievement:unlocked', (payload) => {
     unlockAchievement(payload.achievementId);
-    useAchievementStore.setState((s) => ({
-      achievements: s.achievements.map((a) =>
+    useAchievementStore.setState((s) => {
+      const updated = s.achievements.map((a) =>
         a.id === payload.achievementId
           ? {
               ...a,
@@ -188,8 +205,16 @@ export function useAchievementRealtimeSync(): void {
               progress: 1,
             }
           : a
-      ),
-    }));
+      );
+      // Step 8 — find the newly unlocked achievement and push to toast queue
+      const newlyUnlocked = updated.find(
+        (a) => a.id === payload.achievementId && !s.achievements.find((old) => old.id === a.id && old.unlocked)
+      );
+      const queue = newlyUnlocked
+        ? [...s.unlockedQueue, newlyUnlocked]
+        : s.unlockedQueue;
+      return { achievements: updated, unlockedQueue: queue };
+    });
   });
 
   useSyncEvent('quest:progress', (payload) => {

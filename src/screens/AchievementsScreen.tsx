@@ -1,14 +1,16 @@
 /**
- * AchievementsScreen
+ * AchievementsScreen — Step 8 Achievements Parity
  *
- * Read-only viewer for achievements. Filtered by category (All / Care /
- * Social / Exploration / Collection / Special).
+ * Read-only viewer for achievements. Filtered by:
+ *  - Category: 8 categories (All / Progression / Care / Social / Gameplay /
+ *    Explore / Collect / Special / Hidden)
+ *  - Rarity: 5 tiers (All / Common / Uncommon / Rare / Epic / Legendary)
  *
  * Real-time: useAchievementRealtimeSync pipes achievement:unlocked
- * events into the store.
+ * events into the store and triggers toast via AchievementToastHost.
  */
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,29 +18,46 @@ import {
   FlatList,
   RefreshControl,
   Alert,
+  Pressable,
 } from 'react-native';
 import { useTheme } from '../utils/useTheme';
-import { useAchievementStore, useAchievementRealtimeSync } from '../stores/AchievementStore';
+import {
+  useAchievementStore,
+  useAchievementRealtimeSync,
+} from '../stores/AchievementStore';
 import { SegmentedTabs, TabItem } from '../shared/components/SegmentedTabs';
 import { AchievementCard } from '../shared/components/AchievementCard';
+import { AchievementShareSheet } from '../shared/components/AchievementShareSheet';
 import {
   Achievement,
   AchievementCategory,
+  AchievementRarity,
+  ACHIEVEMENT_CATEGORIES,
+  rarityColor,
+  rarityLabel,
+  rarityGlyph,
 } from '../api/achievementTypes';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Achievements'>;
-type FilterKey = 'all' | AchievementCategory;
 
-const CATEGORY_LABELS: Record<FilterKey, string> = {
+type CategoryKey = 'all' | AchievementCategory;
+type RarityKey = 'all' | AchievementRarity;
+
+const CATEGORY_LABELS: Record<CategoryKey, string> = {
   all: 'All',
+  progression: 'Progression',
   care: 'Care',
   social: 'Social',
+  gameplay: 'Gameplay',
   exploration: 'Explore',
   collection: 'Collect',
   special: 'Special',
+  hidden: 'Hidden',
 };
+
+const RARITY_KEYS: RarityKey[] = ['all', 'common', 'uncommon', 'rare', 'epic', 'legendary'];
 
 export function AchievementsScreen({ navigation }: Props) {
   const theme = useTheme();
@@ -47,8 +66,10 @@ export function AchievementsScreen({ navigation }: Props) {
   const status = useAchievementStore((s) => s.status);
   const loadAll = useAchievementStore((s) => s.loadAll);
 
-  const [filter, setFilter] = useState<FilterKey>('all');
+  const [categoryFilter, setCategoryFilter] = useState<CategoryKey>('all');
+  const [rarityFilter, setRarityFilter] = useState<RarityKey>('all');
   const [showLocked, setShowLocked] = useState(true);
+  const [shareAchievement, setShareAchievement] = useState<Achievement | null>(null);
 
   useAchievementRealtimeSync();
 
@@ -59,15 +80,17 @@ export function AchievementsScreen({ navigation }: Props) {
   const filtered = useMemo(() => {
     return achievements.filter((a) => {
       if (!showLocked && !a.unlocked) return false;
-      if (filter !== 'all' && a.category !== filter) return false;
+      if (categoryFilter !== 'all' && a.category !== categoryFilter) return false;
+      if (rarityFilter !== 'all' && a.rarity !== rarityFilter) return false;
       return true;
     });
-  }, [achievements, filter, showLocked]);
+  }, [achievements, categoryFilter, rarityFilter, showLocked]);
 
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
   const totalCount = achievements.length;
 
-  const tabs: TabItem[] = (Object.keys(CATEGORY_LABELS) as FilterKey[]).map(
+  // Category tabs
+  const categoryTabs: TabItem[] = (['all', ...ACHIEVEMENT_CATEGORIES.map((c) => c.id)] as CategoryKey[]).map(
     (k) => {
       const count =
         k === 'all'
@@ -77,21 +100,38 @@ export function AchievementsScreen({ navigation }: Props) {
     }
   );
 
+  // Rarity filter chips
+  const rarityChips = RARITY_KEYS.map((r) => ({
+    key: r,
+    label: r === 'all' ? 'All' : `${rarityGlyph(r)} ${rarityLabel(r)}`,
+    color: r === 'all' ? undefined : rarityColor(r),
+  }));
+
   const handlePress = useCallback((a: Achievement) => {
+    const isHidden = a.isHidden && !a.unlocked;
+    const buttons: Array<{ text: string; onPress?: () => void; style?: 'cancel' | 'default' }> = [];
+    if (a.unlocked) {
+      buttons.push({ text: 'Share', onPress: () => setShareAchievement(a) });
+    }
+    buttons.push({ text: 'OK', style: 'cancel' });
     Alert.alert(
-      a.unlocked ? `🏆 ${a.title}` : `🔒 ${a.title}`,
-      `${a.description}\n\n${
-        a.unlocked
-          ? `Unlocked on ${new Date(a.unlockedAt ?? Date.now()).toLocaleDateString()}`
-          : a.progressHint ?? 'Not yet unlocked'
-      }${
-        a.rewardCoins !== undefined || a.rewardXP !== undefined
-          ? `\n\nReward: ${a.rewardCoins ?? 0} 🪙 • ${a.rewardXP ?? 0} XP`
-          : ''
-      }`,
-      [{ text: 'OK' }]
+      isHidden ? `🔒 Hidden Achievement` : a.unlocked ? `🏆 ${a.title}` : `🔒 ${a.title}`,
+      isHidden
+        ? 'Keep playing to unlock this achievement!'
+        : `${a.description}\n\n${
+            a.unlocked
+              ? `Unlocked on ${new Date(a.unlockedAt ?? Date.now()).toLocaleDateString()}`
+              : a.progressHint ?? 'Not yet unlocked'
+          }${
+            (a.rewardCoins !== undefined || a.rewardXP !== undefined)
+              ? `\n\nReward: ${a.rewardCoins ?? 0} 🪙 • ${a.rewardXP ?? 0} XP`
+              : ''
+          }`,
+      buttons
     );
   }, []);
+
+  const flatListRef = useRef<FlatList>(null);
 
   return (
     <View style={[styles.root, { backgroundColor: theme.colors.bg }]}>
@@ -125,14 +165,58 @@ export function AchievementsScreen({ navigation }: Props) {
         </Text>
       </View>
 
-      <SegmentedTabs items={tabs} activeKey={filter} onChange={(k) => setFilter(k as FilterKey)} />
+      {/* Category tabs */}
+      <SegmentedTabs
+        items={categoryTabs}
+        activeKey={categoryFilter}
+        onChange={(k) => setCategoryFilter(k as CategoryKey)}
+      />
+
+      {/* Rarity filter chips */}
+      <View style={styles.rarityRow}>
+        {rarityChips.map((chip) => (
+          <Pressable
+            key={chip.key}
+            testID={`rarity-filter-${chip.key}`}
+            onPress={() => setRarityFilter(chip.key)}
+            style={({ pressed }) => [
+              styles.rarityChip,
+              {
+                backgroundColor:
+                  rarityFilter === chip.key
+                    ? chip.color ?? theme.colors.accent
+                    : pressed
+                    ? theme.colors.surfaceMuted
+                    : theme.colors.surface2,
+                borderColor:
+                  rarityFilter === chip.key
+                    ? chip.color ?? theme.colors.accent
+                    : theme.colors.border,
+                borderWidth: 1,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.rarityChipText,
+                {
+                  color:
+                    rarityFilter === chip.key
+                      ? '#FFFFFF'
+                      : chip.color ?? theme.colors.textSecondary,
+                },
+              ]}
+            >
+              {chip.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
 
       <View
         style={[
           styles.toggleRow,
-          {
-            paddingHorizontal: theme.spacing.lg,
-          },
+          { paddingHorizontal: theme.spacing.lg },
         ]}
       >
         <Text
@@ -157,6 +241,7 @@ export function AchievementsScreen({ navigation }: Props) {
       </View>
 
       <FlatList
+        ref={flatListRef}
         data={filtered}
         keyExtractor={(a) => a.id}
         numColumns={2}
@@ -167,6 +252,7 @@ export function AchievementsScreen({ navigation }: Props) {
             <AchievementCard
               achievement={item}
               onPress={() => handlePress(item)}
+              testID={`achievement-card-${item.id}`}
             />
           </View>
         )}
@@ -191,6 +277,27 @@ export function AchievementsScreen({ navigation }: Props) {
           </View>
         }
       />
+
+      {/* Share sheet modal */}
+      {shareAchievement && (
+        <View style={styles.shareSheetOverlay}>
+          <Pressable
+            style={styles.shareOverlayBackdrop}
+            onPress={() => setShareAchievement(null)}
+          />
+          <View
+            style={[
+              styles.shareSheet,
+              { backgroundColor: theme.colors.bg },
+            ]}
+          >
+            <AchievementShareSheet
+              achievement={shareAchievement}
+              onClose={() => setShareAchievement(null)}
+            />
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -198,6 +305,22 @@ export function AchievementsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   header: {},
+  rarityRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  rarityChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  rarityChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
   toggleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -207,5 +330,18 @@ const styles = StyleSheet.create({
   empty: {
     paddingHorizontal: 32,
     paddingTop: 32,
+  },
+  shareSheetOverlay: {
+    ...StyleSheet.absoluteFill,
+    justifyContent: 'flex-end',
+  },
+  shareOverlayBackdrop: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  shareSheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 40,
   },
 });
