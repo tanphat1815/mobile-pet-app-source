@@ -32,6 +32,13 @@ import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { BiometricLoginScreen } from '../screens/BiometricLoginScreen';
 import { NotificationBannerHost } from '../shared/components/NotificationBanner';
 import { NotificationLifecycle } from '../stores/NotificationLifecycle';
+import { WellnessHomeScreen } from '../screens/wellness/WellnessHomeScreen';
+import { MeditationScreen } from '../screens/wellness/MeditationScreen';
+import { BreathingScreen } from '../screens/wellness/BreathingScreen';
+import { PomodoroScreen } from '../screens/wellness/PomodoroScreen';
+import { AmbientScreen } from '../screens/wellness/AmbientScreen';
+import { GratitudeScreen } from '../screens/wellness/GratitudeScreen';
+import { MoodScreen } from '../screens/wellness/MoodScreen';
 import { initHapticsAccessibility, hapticSuccess } from '../utils/haptics';
 import { getBiometricCapability, biometryLabel } from '../api/biometric';
 import type { RootStackParamList, MainStackParamList } from './types';
@@ -213,6 +220,42 @@ function MainNavigator() {
       <MainStack.Screen
         name="Profile"
         component={ProfileScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      {/* Step 12a — Wellness stack */}
+      <MainStack.Screen
+        name="WellnessHome"
+        component={WellnessHomeScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MainStack.Screen
+        name="Meditation"
+        component={MeditationScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MainStack.Screen
+        name="Breathing"
+        component={BreathingScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MainStack.Screen
+        name="Pomodoro"
+        component={PomodoroScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MainStack.Screen
+        name="Ambient"
+        component={AmbientScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MainStack.Screen
+        name="Gratitude"
+        component={GratitudeScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MainStack.Screen
+        name="Mood"
+        component={MoodScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </MainStack.Navigator>

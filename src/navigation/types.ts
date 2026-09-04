@@ -23,6 +23,14 @@ export type MainStackParamList = {
   Quests: undefined;
   Settings: undefined;
   Profile: undefined;
+  // Step 12a — Wellness stack
+  WellnessHome: undefined;
+  Meditation: undefined;
+  Breathing: undefined;
+  Pomodoro: undefined;
+  Ambient: undefined;
+  Gratitude: undefined;
+  Mood: undefined;
 };
 
 export type AuthStackParamList = {
