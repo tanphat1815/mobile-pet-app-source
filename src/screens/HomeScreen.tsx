@@ -8,7 +8,7 @@
  * pet:update / pet:mood events and updates the PetStore automatically.
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { useTheme } from '../utils/useTheme';
 import { useReducedMotion } from '../utils/useReducedMotion';
@@ -28,6 +28,9 @@ import { PetAvatar } from '../shared/components/PetAvatar';
 import { PetActionButton } from '../shared/components/PetActionButton';
 import { SyncStatusBadge } from '../shared/components/SyncStatusBadge';
 import { NotificationCard } from '../shared/components/NotificationCard';
+import { NotificationBell } from '../shared/components/NotificationBell';
+import { NotificationCenter } from '../shared/components/NotificationCenter';
+import { useNotificationStore } from '../stores/NotificationStore';
 import type { PetAction } from '../api/petTypes';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../navigation/types';
@@ -44,6 +47,7 @@ const PET_ACTIONS: { action: PetAction; label: string; emoji: string }[] = [
 export function HomeScreen({ navigation }: Props) {
   const theme = useTheme();
   const reducedMotion = useReducedMotion();
+  const [showNotificationCenter, setShowNotificationCenter] = useState(false);
 
   const { user, status, logout } = useAuthStore();
   const syncStatus = useSyncStore((s) => s.status);
@@ -85,6 +89,7 @@ export function HomeScreen({ navigation }: Props) {
   const lastEventText = lastEventTs ? new Date(lastEventTs).toLocaleTimeString() : '-';
 
   return (
+    <>
     <ScrollView
       style={[styles.root, { backgroundColor: theme.colors.bg }]}
       contentContainerStyle={styles.content}
@@ -132,6 +137,9 @@ export function HomeScreen({ navigation }: Props) {
             </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <NotificationBell
+              onPress={() => setShowNotificationCenter(true)}
+            />
             <Button
               title="⚙"
               onPress={() => navigation.navigate('Settings')}
@@ -444,6 +452,13 @@ export function HomeScreen({ navigation }: Props) {
 
       <View style={{ height: theme.spacing.xxxl }} />
     </ScrollView>
+
+    {/* Step 9 — Notification Center */}
+    <NotificationCenter
+      visible={showNotificationCenter}
+      onClose={() => setShowNotificationCenter(false)}
+    />
+    </>
   );
 }
 

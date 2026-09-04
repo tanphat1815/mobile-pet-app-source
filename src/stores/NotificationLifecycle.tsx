@@ -11,6 +11,7 @@ import { useAuthStore } from './AuthStore';
 import {
   useNotificationStore,
   useNotificationStoreBridge,
+  useRealtimeNotificationSync,
 } from './NotificationStore';
 
 export function NotificationLifecycle({ children }: { children: React.ReactNode }) {
@@ -20,6 +21,8 @@ export function NotificationLifecycle({ children }: { children: React.ReactNode 
   const register = useNotificationStore((s) => s.requestPermissionsAndRegister);
 
   useNotificationStoreBridge();
+  // Step 9 — subscribe to realtime notification:new events from SyncManager
+  useRealtimeNotificationSync();
 
   useEffect(() => {
     start();
