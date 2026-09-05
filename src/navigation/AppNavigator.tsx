@@ -44,6 +44,7 @@ import { AdventureHomeScreen } from '../screens/adventure/AdventureHomeScreen';
 import { AIChatScreen } from '../screens/ai/AIChatScreen';
 import { AISettingsScreen } from '../screens/ai/AISettingsScreen';
 import { TricksScreen } from '../screens/tricks/TricksScreen';
+import { CompetitionsScreen } from '../screens/competitions/CompetitionsScreen';
 import { initHapticsAccessibility, hapticSuccess } from '../utils/haptics';
 import { getBiometricCapability, biometryLabel } from '../api/biometric';
 import type { RootStackParamList, MainStackParamList } from './types';
@@ -290,6 +291,12 @@ function MainNavigator() {
       <MainStack.Screen
         name="TricksHome"
         component={TricksScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      {/* Step 12f — Competitions */}
+      <MainStack.Screen
+        name="CompetitionsHome"
+        component={CompetitionsScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </MainStack.Navigator>

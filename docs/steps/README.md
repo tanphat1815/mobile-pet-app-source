@@ -24,6 +24,7 @@
 | 12c | [Adventure](./step-12c-adventure.md) | Large | ✅ High | ✅ Done |
 | 12d | [AI Chatbot BYOK](./step-12d-ai-chatbot.md) | Large | ✅ High | ✅ Done |
 | 12e | [Pet Tricks / Training](./step-12e-tricks.md) | Medium | ✅ High | ✅ Done |
+| 12f | [Competitions & Tournaments](./step-12f-competitions.md) | Large | ✅ High | ✅ Done |
 | 13 | [Admin / diagnostics lite](./step-13-admin-diagnostics.md) | Small | Dev only | ✅ Done |
 
 ---

@@ -49,6 +49,8 @@ export const StorageKeys = {
   AIHistory: 'ai.history',
   // Step 12e — Pet Tricks
   TricksState: 'tricks.state',
+  // Step 12f — Competitions
+  CompetitionsState: 'competitions.state',
 } as const;
 
 export type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys];
