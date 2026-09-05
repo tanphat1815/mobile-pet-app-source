@@ -42,6 +42,10 @@ export type MainStackParamList = {
   TricksHome: undefined;
   // Step 12f — Competitions
   CompetitionsHome: undefined;
+  // Step 12g — Mini-games
+  MiniGamesHome: undefined;
+  CatchFall: undefined;
+  TimingGame: undefined;
 };
 
 export type AuthStackParamList = {

@@ -45,6 +45,12 @@ import { AIChatScreen } from '../screens/ai/AIChatScreen';
 import { AISettingsScreen } from '../screens/ai/AISettingsScreen';
 import { TricksScreen } from '../screens/tricks/TricksScreen';
 import { CompetitionsScreen } from '../screens/competitions/CompetitionsScreen';
+import { MiniGamesHomeScreen } from '../screens/minigames/MiniGamesHomeScreen';
+import { CatchFallScreen } from '../screens/minigames/CatchFallScreen';
+import { TimingGameScreen } from '../screens/minigames/TimingGameScreen';
+// Step 12g — Side-effect imports so dev exposes register before any
+// screen mounts (Playwright tests need them at app boot).
+import '../api/miniGamesDev';
 import { initHapticsAccessibility, hapticSuccess } from '../utils/haptics';
 import { getBiometricCapability, biometryLabel } from '../api/biometric';
 import type { RootStackParamList, MainStackParamList } from './types';
@@ -297,6 +303,22 @@ function MainNavigator() {
       <MainStack.Screen
         name="CompetitionsHome"
         component={CompetitionsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      {/* Step 12g — Mini-games */}
+      <MainStack.Screen
+        name="MiniGamesHome"
+        component={MiniGamesHomeScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MainStack.Screen
+        name="CatchFall"
+        component={CatchFallScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MainStack.Screen
+        name="TimingGame"
+        component={TimingGameScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </MainStack.Navigator>
