@@ -129,16 +129,30 @@ function buildScreenItems(): SearchableItem[] {
   >).map(([route, aliases]) => ({
     id: route,
     kind: 'screen',
-    title: route
-      .replace(/([A-Z])/g, ' $1')
-      .trim()
-      .replace(/^./, (c) => c.toUpperCase()),
+    title: humanizeScreenName(route),
     subtitle: aliases.slice(0, 3).join(' · '),
     icon: iconForScreen(route),
     keywords: aliases.map((a) => a.toLowerCase()),
     route,
     weight: SCREEN_WEIGHT,
   }));
+}
+
+/**
+ * Render route names like "AIChat", "ChatThread", "AISettings" as
+ * readable titles: "AI Chat", "Chat Thread", "AI Settings".
+ *
+ * Naive insertion of " " before every capital letter breaks for
+ * consecutive caps ("AIChat" → "A I Chat"). Instead, split on
+ * the boundary between a lowercase → uppercase transition OR on
+ * the boundary before an uppercase that follows two+ caps.
+ */
+function humanizeScreenName(route: keyof MainStackParamList): string {
+  // Insert a space only when transitioning between a lowercase
+  // letter (or uppercase after uppercase) and an uppercase letter.
+  return route
+    .replace(/([a-z])([A-Z])/g, '$1 $2')  // lower → Upper
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); // ABC → AB C (run before lower)
 }
 
 function iconForScreen(route: keyof MainStackParamList): string {

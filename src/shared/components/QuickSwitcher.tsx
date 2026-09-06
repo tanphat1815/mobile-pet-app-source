@@ -191,11 +191,15 @@ export function QuickSwitcher({
 
   const pinnedLookup = useMemo(() => new Set(pinnedIds), [pinnedIds]);
 
+  // When invisible, render nothing to keep DOM clean and avoid blocking
+  // pointer events for siblings (FAB, etc.) behind the host screen.
+  if (!visible) return null;
+
   return (
     <View
       testID="quick-switcher"
-      pointerEvents={visible ? 'auto' : 'none'}
-      style={[StyleSheet.absoluteFill, !visible && styles.hidden]}
+      style={[StyleSheet.absoluteFill]}
+      pointerEvents={'auto'}
     >
       <Pressable
         testID="quick-switcher-backdrop"
@@ -306,9 +310,6 @@ export function QuickSwitcher({
 }
 
 const styles = StyleSheet.create({
-  hidden: {
-    opacity: 0,
-  },
   backdrop: {
     ...(StyleSheet.absoluteFill as object),
   },

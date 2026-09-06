@@ -16,9 +16,35 @@
 import { test, expect, type Page } from '@playwright/test';
 
 async function waitForAppMount(page: Page) {
+  // Explicit goto ensures addInitScript (auth seed) runs BEFORE the
+  // React app boots and AuthStore.restoreSession() reads storage.
+  await page.goto('/');
   await page.waitForSelector('body', { timeout: 60_000 });
-  await page.waitForTimeout(2500);
+  await page.waitForTimeout(3500); // give restoreSession + Home mount time
 }
+
+/**
+ * Pre-seed web localStorage (the backend AsyncStorage uses on web) with
+ * a fake auth session so AuthStore.restoreSession() picks it up and the
+ * app boots straight into Home instead of the Login screen.
+ *
+ * Must be called via page.addInitScript() BEFORE the page navigates,
+ * because restoreSession() runs synchronously on app boot.
+ */
+const SEED_INIT_SCRIPT = `
+  try {
+    window.localStorage.setItem('auth.token', 'e2e-test-token');
+    window.localStorage.setItem('auth.user', JSON.stringify({
+      id: 'e2e-user',
+      email: 'e2e@test.local',
+      displayName: 'E2E Tester',
+      createdAt: ${Date.now()},
+    }));
+    window.localStorage.setItem('onboarding.complete', 'true');
+  } catch (e) {
+    console.warn('[e2e seed] failed', e);
+  }
+`;
 
 async function openViaFab(page: Page) {
   await page.locator('[data-testid="fab-search"]').click();
@@ -43,6 +69,9 @@ async function closeViaEscape(page: Page) {
 
 test.describe('Step 14 — Global Quick Switcher', () => {
   test.beforeEach(async ({ page }) => {
+    // Seed auth BEFORE navigating so AuthStore.restoreSession() picks
+    // it up and the app boots into Home (where the FAB lives).
+    await page.addInitScript(SEED_INIT_SCRIPT);
     await page.emulateMedia({ colorScheme: 'light' });
     await waitForAppMount(page);
   });
@@ -100,15 +129,11 @@ test.describe('Step 14 — Global Quick Switcher', () => {
     await page.waitForTimeout(250);
     await page.keyboard.press('Enter');
 
-    // Modal should close
-    await page.waitForTimeout(400);
+    // Modal closes (rendered null) — give navigation+unmount time.
+    await page.waitForTimeout(500);
     await expect(
       page.locator('[data-testid="quick-switcher"]'),
-    ).not.toBeVisible();
-
-    // Navigation should have happened (we don't assert exact screen testID
-    // because that depends on BreathingScreen's testID — but the URL/route
-    // would change). Verify the modal is the key observable.
+    ).toHaveCount(0);
   });
 
   test('Escape closes the modal', async ({ page }) => {
@@ -116,7 +141,7 @@ test.describe('Step 14 — Global Quick Switcher', () => {
     await closeViaEscape(page);
     await expect(
       page.locator('[data-testid="quick-switcher"]'),
-    ).not.toBeVisible();
+    ).toHaveCount(0);
   });
 
   test('backdrop click closes the modal', async ({ page }) => {
@@ -125,7 +150,7 @@ test.describe('Step 14 — Global Quick Switcher', () => {
     await page.waitForTimeout(200);
     await expect(
       page.locator('[data-testid="quick-switcher"]'),
-    ).not.toBeVisible();
+    ).toHaveCount(0);
   });
 
   test('recents persist across sessions', async ({ page }) => {
@@ -158,25 +183,26 @@ test.describe('Step 14 — Global Quick Switcher', () => {
     expect(hasResult || hasSuggestion).toBe(true);
   });
 
-  test('empty query shows pinned/recents sections', async ({ page }) => {
-    // Pin something first
+  test('right-click on a result pins it (no navigation)', async ({ page }) => {
     await openViaFab(page);
     await page.fill('[data-testid="quick-switcher-input"]', 'music');
     await page.waitForTimeout(250);
-    await page.locator('[data-testid="search-result"]').first().click();
-    await page.waitForTimeout(400);
-
-    // Now open and pin it via long-press
-    await openViaFab(page);
-    await page.fill('[data-testid="quick-switcher-input"]', 'music');
-    await page.waitForTimeout(250);
+    // Right-click should pin/unpin, NOT navigate. Use force because RN Web
+    // sometimes forwards the event as a context menu.
     await page
       .locator('[data-testid="search-result"]')
       .first()
-      .click({ button: 'right' });
-    await page.waitForTimeout(300);
+      .click({ button: 'right', force: true });
+    await page.waitForTimeout(200);
 
-    // Empty query should show the music result in the list (recents at minimum)
+    // Modal should still be open (pin is not navigation)
+    await expect(
+      page.locator('[data-testid="quick-switcher"]'),
+    ).toHaveCount(1);
+
+    // Reopen with empty query — Music should appear in pinned
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
     await openViaFab(page);
     await expect(
       page.locator('[data-testid="quick-switcher-list"]'),

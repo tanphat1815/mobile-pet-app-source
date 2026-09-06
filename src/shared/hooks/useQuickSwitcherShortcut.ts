@@ -17,8 +17,6 @@ import { Platform } from 'react-native';
 export interface UseQuickSwitcherShortcutOptions {
   /** Called when the shortcut fires. */
   onOpen: () => void;
-  /** Optional ref to the input — pressing Esc inside it closes the modal. */
-  enableEscape?: boolean;
   /** Optional close callback for Escape handling. */
   onClose?: () => void;
   /** When false, the listener is detached (e.g., after auth). */
@@ -27,39 +25,46 @@ export interface UseQuickSwitcherShortcutOptions {
 
 export function useQuickSwitcherShortcut({
   onOpen,
-  enableEscape = true,
   onClose,
   enabled = true,
 }: UseQuickSwitcherShortcutOptions): void {
+  // Escape closes whenever the modal is mounted. The hook listener
+  // may not fire on web if a nested <Modal> (RN-Web) dialog consumes
+  // the keydown first; we listen at capture phase to beat that.
   useEffect(() => {
     if (!enabled) return;
-    // Web-only shortcut: native keyboards don't surface Cmd/Ctrl to JS.
     if (Platform.OS !== 'web') return;
 
     function handleKeyDown(e: KeyboardEvent) {
+      // Always handle Escape while our search modal is open. The
+      // QuickSwitcher is rendered as a sibling overlay (outside any
+      // RN <Modal>), so reaching this handler means the user has
+      // interacted with our input.
+      if (e.key === 'Escape' && onClose) {
+        const active = document.activeElement;
+        // Either focus is inside our modal OR our modal is the topmost
+        // overlay (capture-phase listener on window ensures we see it).
+        const insideSwitcher =
+          active instanceof HTMLElement &&
+          (active.closest?.('[data-testid="quick-switcher"]') !== null);
+        if (insideSwitcher || document.querySelector('[data-testid="quick-switcher"]')) {
+          e.preventDefault();
+          e.stopPropagation();
+          onClose();
+          return;
+        }
+      }
+
       const isOpenShortcut =
         (e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K');
-
       if (isOpenShortcut) {
         e.preventDefault();
         onOpen();
-        return;
-      }
-
-      if (enableEscape && onClose && e.key === 'Escape') {
-        // Only swallow Escape if the search input or our modal has focus
-        const active = document.activeElement;
-        const isOurs =
-          active instanceof HTMLElement &&
-          (active.dataset?.testid?.startsWith('quick-switcher') ?? false);
-        if (isOurs) {
-          e.preventDefault();
-          onClose();
-        }
       }
     }
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onOpen, onClose, enableEscape, enabled]);
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () =>
+      window.removeEventListener('keydown', handleKeyDown, { capture: true } as any);
+  }, [onOpen, onClose, enabled]);
 }

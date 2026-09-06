@@ -67,6 +67,17 @@ describe('QuickSwitcherIndex', () => {
     expect(results[0]?.id).toBe('Meditation');
   });
 
+  test('screen titles humanize consecutive caps ("AIChat" → "AI Chat")', () => {
+    // Regression: naive "insert space before every capital" produced
+    // "A I Chat" which broke UI display + text-match assertions.
+    const aichat = index.byId('AIChat');
+    expect(aichat?.title).toBe('AI Chat');
+    const aiSettings = index.byId('AISettings');
+    expect(aiSettings?.title).toBe('AI Settings');
+    const chatThread = index.byId('ChatThread');
+    expect(chatThread?.title).toBe('Chat Thread');
+  });
+
   test('fuzzy matches "breath" to Breathing (not Breathing only)', () => {
     const results = index.query('breath');
     expect(results[0]?.id).toBe('Breathing');

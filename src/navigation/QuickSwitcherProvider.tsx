@@ -67,7 +67,6 @@ export function QuickSwitcherProvider({ children }: QuickSwitcherProviderProps) 
   useQuickSwitcherShortcut({
     onOpen: () => setIsOpen(true),
     onClose: () => setIsOpen(false),
-    enableEscape: true,
     enabled: true,
   });
 
