@@ -27,12 +27,13 @@
 | 12f | [Competitions & Tournaments](./step-12f-competitions.md) | Large | ✅ High | ✅ Done |
 | 12g | [Mini-games (Catch Fall + Timing)](./step-12g-mini-games.md) | Medium | ✅ Highest | ✅ Done |
 | 13 | [Admin / diagnostics lite](./step-13-admin-diagnostics.md) | Small | Dev only | ✅ Done |
+| 14 | [Global Quick Switcher (Search-first)](./step-14-global-quick-switcher.md) | Medium | ✅ Highest | 🚧 Planned |
 
 ---
 
 ## Recommended execution order
 
-Đã ưu tiên theo: **visual/theme parity (thấy ngay) → pet (nền tảng) → social → meta loop → power features**.
+Đã ưu tiên theo: **visual/theme parity (thấy ngay) → pet (nền tảng) → social → meta loop → power features → search-first**.
 
 ### Phase 1 — Visual foundation (1 tuần)
 - **Step 1** Theme parity Cozy Cream ← *bắt đầu ở đây*

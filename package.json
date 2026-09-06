@@ -13,6 +13,7 @@
     "expo-local-authentication": "~57.0.2",
     "expo-notifications": "~57.0.15",
     "expo-status-bar": "~57.0.1",
+    "fuse.js": "^7.5.0",
     "react": "^19.2.3",
     "react-dom": "19.2.3",
     "react-native": "^0.86.3",
