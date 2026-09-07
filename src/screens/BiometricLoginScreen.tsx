@@ -156,7 +156,7 @@ export function BiometricLoginScreen({
           style={[
             styles.avatar,
             {
-              backgroundColor: theme.isDark ? '#1C1C1E' : '#F2F2F7',
+              backgroundColor: theme.colors.surface2,
               borderRadius: 80,
               borderColor: theme.colors.border,
             },

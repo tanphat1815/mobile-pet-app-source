@@ -15,6 +15,7 @@ import {
   UserStats,
 } from '../api/settings';
 import { UserSettings, DEFAULT_SETTINGS } from '../api/settingsTypes';
+import { ThemeId, isThemeUnlocked } from '../utils/appThemes';
 import { AuthUser } from '../api/storage';
 import { getApiError } from '../api/client';
 
@@ -45,6 +46,11 @@ export interface SettingsState {
     key: K,
     value: UserSettings[K]
   ) => Promise<void>;
+  /**
+   * Step 2 — apply 1 app theme (seasonal/premium/custom). Trả về false nếu
+   * theme chưa unlock (insufficient coins) → UI show toast.
+   */
+  setAppTheme: (id: ThemeId, coinsBalance?: number) => Promise<boolean>;
   saveProfile: (patch: { displayName?: string; avatarUrl?: string }) => Promise<AuthUser>;
   reset: () => void;
 }
@@ -107,6 +113,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const e = getApiError(err);
       set({ settings: prev, saving: false, error: e.message });
     }
+  },
+
+  setAppTheme: async (id, coinsBalance = 0) => {
+    // Wallet gate cho premium themes. Nếu chưa đủ coin → reject.
+    if (!isThemeUnlocked(id, coinsBalance)) {
+      const e = getApiError({ status: 402, message: 'Insufficient coins to unlock theme' });
+      set({ error: e.message });
+      return false;
+    }
+    return get().updateSetting('appThemeId', id).then(() => true);
   },
 
   saveProfile: async (patch) => {

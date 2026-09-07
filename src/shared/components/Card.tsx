@@ -29,9 +29,12 @@ export function Card({ children, variant = 'default', padding = 'md', style }: C
 
   const containerStyle: ViewStyle = {
     backgroundColor: variant === 'flat' ? theme.colors.surface2 : theme.colors.surface,
-    borderRadius: theme.radius.lg,
+    borderRadius: theme.radius.xl,
     padding: padValue,
-    ...(variant === 'elevated' ? theme.shadows.elevation3 : theme.shadows.elevation1),
+    // Bento style: dùng shadow tone ấm (#1E2024) + border be tinh tế
+    borderWidth: variant === 'flat' ? 0 : 1,
+    borderColor: theme.colors.border,
+    ...(variant === 'elevated' ? theme.shadows.elevation3 : theme.shadows.elevation2),
   };
 
   return <View style={[styles.card, containerStyle, style]}>{children}</View>;

@@ -23,21 +23,34 @@ export interface PetAvatarProps {
   reducedMotion?: boolean;
 }
 
+/**
+ * Mood → ring color mapping.
+ *
+ * Step 1 (Cozy Cream parity): chuyển sang warm tone để hợp với kem background
+ * (xem desktop `app-themes.js` accent: '#FF9500' warning, dark accent gradient).
+ * Mỗi mood có tone riêng:
+ *   - happy:    cam ấm #FF9F1C (hợp cozy)
+ *   - sad:      hồng pastel #FFB6C1 (không đỏ gắt như theme.danger)
+ *   - eating:   vàng mật ong #FFB627 (thay vì warning cam lạnh)
+ *   - sleeping: xám lavender be #B8B0A0
+ *   - playing:  xanh lam sáng #5AC8FA (giữ accentMuted)
+ *   - idle:     be xám border #D8D0C2
+ */
 function moodColor(mood: Pet['mood'], theme: ReturnType<typeof useTheme>): string {
   switch (mood) {
     case 'happy':
-      return theme.colors.success;
+      return '#FF9F1C';
     case 'sad':
-      return theme.colors.danger;
+      return '#FFB6C1';
     case 'eating':
-      return theme.colors.warning;
+      return '#FFB627';
     case 'sleeping':
-      return '#8E8E93';
+      return '#B8B0A0';
     case 'playing':
-      return theme.colors.accent;
+      return theme.colors.accentMuted;
     case 'idle':
     default:
-      return theme.colors.border;
+      return theme.colors.borderStrong;
   }
 }
 

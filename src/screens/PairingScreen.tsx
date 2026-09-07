@@ -285,7 +285,7 @@ export function PairingScreen({ navigation }: Props) {
                   paddingVertical: 8,
                   paddingHorizontal: 12,
                   borderRadius: theme.radius.md,
-                  backgroundColor: theme.isDark ? '#1C1C1E' : '#F2F2F7',
+                  backgroundColor: theme.colors.surface2,
                 }}
                 editable={!submitting}
               />

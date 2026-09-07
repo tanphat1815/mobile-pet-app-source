@@ -62,8 +62,8 @@ export function AchievementCard({ achievement, onPress }: AchievementCardProps) 
             backgroundColor: unlocked
               ? theme.colors.surface
               : theme.isDark
-              ? '#1C1C1E'
-              : '#F2F2F7',
+              ? theme.colors.surface
+              : theme.colors.surfaceMuted,
             borderRadius: theme.radius.lg,
             borderColor: unlocked
               ? theme.colors.border

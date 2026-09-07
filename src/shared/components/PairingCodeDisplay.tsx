@@ -51,7 +51,7 @@ export function PairingCodeDisplay({ code, expiresAt, now }: PairingCodeDisplayP
       style={[
         styles.root,
         {
-          backgroundColor: theme.isDark ? '#1C1C1E' : '#F2F2F7',
+          backgroundColor: theme.colors.surface2,
           borderRadius: theme.radius.lg,
         },
       ]}

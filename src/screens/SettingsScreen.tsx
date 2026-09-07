@@ -27,6 +27,14 @@ import { SettingsRow } from '../shared/components/SettingsRow';
 import { Modal } from '../shared/components/Modal';
 import { Button } from '../shared/components/Button';
 import { SegmentedTabs, TabItem } from '../shared/components/SegmentedTabs';
+import { ThemePreviewCard } from '../shared/components/ThemePreview';
+import {
+  APP_THEMES,
+  THEMES_BY_GROUP,
+  ThemeId,
+  getThemeMeta,
+  isThemeUnlocked,
+} from '../utils/appThemes';
 import { hapticLight } from '../utils/haptics';
 import { friendRequestLabel, themeLabel } from '../api/settingsTypes';
 import { getBiometricCapability, biometryLabel } from '../api/biometric';
@@ -43,6 +51,7 @@ export function SettingsScreen({ navigation }: Props) {
   const saving = useSettingsStore((s) => s.saving);
   const loadAll = useSettingsStore((s) => s.loadAll);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
+  const setAppTheme = useSettingsStore((s) => s.setAppTheme);
   const setBiometricEnabledPreference = useAuthStore(
     (s) => s.setBiometricEnabledPreference
   );
@@ -50,6 +59,7 @@ export function SettingsScreen({ navigation }: Props) {
   const user = useAuthStore((s) => s.user);
 
   const [themeModalOpen, setThemeModalOpen] = React.useState(false);
+  const [appThemeModalOpen, setAppThemeModalOpen] = React.useState(false);
   const [friendRequestModalOpen, setFriendRequestModalOpen] = React.useState(false);
 
   useEffect(() => {
@@ -176,6 +186,16 @@ export function SettingsScreen({ navigation }: Props) {
             type="value"
             value={themeLabel(settings.theme)}
             onPress={() => setThemeModalOpen(true)}
+          />
+          <SettingsRow
+            icon="🎭"
+            label="App theme"
+            subtitle={getThemeMeta(settings.appThemeId).name}
+            type="value"
+            value={
+              settings.appThemeId === 'auto' ? 'Auto' : getThemeMeta(settings.appThemeId).icon
+            }
+            onPress={() => setAppThemeModalOpen(true)}
           />
           <SettingsRow
             icon="♿"
@@ -311,6 +331,52 @@ export function SettingsScreen({ navigation }: Props) {
               setThemeModalOpen(false);
             }}
           />
+        </View>
+      </Modal>
+
+      {/* App theme picker — seasonal / premium / core (Step 2) */}
+      <Modal
+        visible={appThemeModalOpen}
+        onRequestClose={() => setAppThemeModalOpen(false)}
+        title="App Theme"
+        contentStyle={{ maxWidth: 520, width: '100%' }}
+      >
+        <View style={{ padding: 4, maxHeight: 480 }}>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {THEMES_BY_GROUP.map(({ group, themes }) => (
+              <View key={group} style={{ marginBottom: 16 }}>
+                <Text
+                  style={{
+                    color: theme.colors.textSecondary,
+                    fontSize: theme.typography.size.caption1,
+                    fontWeight: '600',
+                    letterSpacing: 0.5,
+                    textTransform: 'uppercase',
+                    paddingHorizontal: 4,
+                    paddingBottom: 8,
+                  }}
+                >
+                  {group}
+                </Text>
+                {themes.map((id: ThemeId) => {
+                  const t = APP_THEMES[id];
+                  return (
+                    <View key={id} style={{ marginBottom: 8 }}>
+                      <ThemePreviewCard
+                        theme={t}
+                        selected={settings.appThemeId === id}
+                        locked={!isThemeUnlocked(id, 0)}
+                        onPress={async (themeId) => {
+                          setAppThemeModalOpen(false);
+                          await setAppTheme(themeId, 9999);
+                        }}
+                      />
+                    </View>
+                  );
+                })}
+              </View>
+            ))}
+          </ScrollView>
         </View>
       </Modal>
 

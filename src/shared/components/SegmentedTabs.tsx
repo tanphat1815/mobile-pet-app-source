@@ -61,7 +61,7 @@ export function SegmentedTabs({ items, activeKey, onChange }: SegmentedTabsProps
       style={[
         styles.root,
         {
-          backgroundColor: theme.isDark ? '#1C1C1E' : '#F2F2F7',
+          backgroundColor: theme.colors.surface2,
           borderRadius: theme.radius.md,
           marginHorizontal: 16,
           marginTop: 12,
@@ -76,7 +76,7 @@ export function SegmentedTabs({ items, activeKey, onChange }: SegmentedTabsProps
           {
             backgroundColor: theme.colors.surface,
             borderRadius: theme.radius.md,
-            shadowColor: theme.isDark ? '#000000' : '#000000',
+            shadowColor: '#1E2024',
           },
           indicatorStyle,
         ]}

@@ -131,7 +131,7 @@ export function ProfileScreen({ navigation }: Props) {
             style={[
               styles.avatar,
               {
-                backgroundColor: theme.isDark ? '#1C1C1E' : '#F2F2F7',
+                backgroundColor: theme.colors.surface2,
                 borderRadius: 64,
                 borderColor: theme.colors.border,
               },

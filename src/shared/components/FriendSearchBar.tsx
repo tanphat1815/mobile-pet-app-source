@@ -29,7 +29,7 @@ export function FriendSearchBar({
       style={[
         styles.root,
         {
-          backgroundColor: theme.isDark ? '#1C1C1E' : '#F2F2F7',
+          backgroundColor: theme.colors.surface2,
           borderRadius: theme.radius.md,
           borderColor: focused ? theme.colors.accent : 'transparent',
         },
