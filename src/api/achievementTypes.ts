@@ -4,6 +4,10 @@
  * Achievements: badges unlocked by completing tasks. Read-only here
  *   (the user can view which are unlocked / progress toward locked).
  * Quests: time-bound or task-based objectives with rewards.
+ *
+ * Step 6 — mở rộng Quest với tier (daily/weekly/event), difficulty
+ * (easy/medium/hard/epic), reroll cost + free allowance, streakBonus
+ * multiplier.
  */
 
 export type AchievementCategory =
@@ -14,6 +18,56 @@ export type AchievementCategory =
   | 'special';
 
 export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum';
+
+/**
+ * Step 6 — QuestTier chia theo chu kỳ reset:
+ *  - daily: reset mỗi 24h
+ *  - weekly: reset mỗi 7 ngày
+ *  - event: thời hạn cố định (special)
+ */
+export type QuestTier = 'daily' | 'weekly' | 'event';
+
+/**
+ * Step 6 — difficulty quyết định reward multiplier:
+ *  - easy: 1× base
+ *  - medium: 1.5×
+ *  - hard: 2×
+ *  - epic: 3×
+ */
+export type QuestDifficulty = 'easy' | 'medium' | 'hard' | 'epic';
+
+export interface DifficultyMeta {
+  id: QuestDifficulty;
+  label: string;
+  tint: string;
+  textColor: string;
+  rewardMultiplier: number;
+  emoji: string;
+}
+
+export const QUEST_DIFFICULTY: DifficultyMeta[] = [
+  { id: 'easy',   label: 'Easy',   tint: '#D1F0D8', textColor: '#14532D', rewardMultiplier: 1.0, emoji: '🟢' },
+  { id: 'medium', label: 'Medium', tint: '#FFE9A8', textColor: '#8A5A00', rewardMultiplier: 1.5, emoji: '🟡' },
+  { id: 'hard',   label: 'Hard',   tint: '#FFC1C1', textColor: '#7A1F1F', rewardMultiplier: 2.0, emoji: '🟠' },
+  { id: 'epic',   label: 'Epic',   tint: '#E5D1FF', textColor: '#4C1D95', rewardMultiplier: 3.0, emoji: '🟣' },
+];
+
+export function getDifficultyMeta(id: QuestDifficulty): DifficultyMeta | undefined {
+  return QUEST_DIFFICULTY.find((d) => d.id === id);
+}
+
+/**
+ * Tính reward cuối cùng sau khi áp dụng difficulty + streak bonuses.
+ */
+export function applyRewardMultiplier(
+  base: number,
+  difficulty: QuestDifficulty,
+  streakMultiplier: number
+): number {
+  const diff = getDifficultyMeta(difficulty);
+  const diffMul = diff?.rewardMultiplier ?? 1.0;
+  return Math.round(base * diffMul * streakMultiplier);
+}
 
 export interface Achievement {
   id: string;
@@ -36,7 +90,7 @@ export interface Achievement {
   progressHint?: string;
 }
 
-export type QuestStatus = 'active' | 'completed' | 'expired';
+export type QuestStatus = 'active' | 'completed' | 'expired' | 'claimed' | 'rerolled';
 
 export interface QuestObjective {
   id: string;
@@ -67,11 +121,28 @@ export interface Quest {
   icon: string;
   /** Optional category label */
   category?: string;
+  // ====================== Step 6 additions ======================
+  /** Tier — daily / weekly / event */
+  tier: QuestTier;
+  /** Difficulty quyết định reward multiplier */
+  difficulty: QuestDifficulty;
+  /** Coin cost để reroll 1 quest */
+  rerollCost: number;
+  /** Số reroll miễn phí còn lại trong ngày */
+  freeRerollsLeft: number;
+  /** Bonus XP multiplier từ streak (cached) */
+  streakBonus: number;
 }
 
-// ============================================================================
-// Helpers
-// ============================================================================
+// Dev expose cho e2e tests
+if (typeof globalThis !== 'undefined' && (globalThis as any).__DEV__) {
+  (globalThis as any).__QUEST_DIFFICULTY_COUNT__ = QUEST_DIFFICULTY.length;
+  (globalThis as any).__QUEST_DIFFICULTY__ = QUEST_DIFFICULTY;
+  if (typeof window !== 'undefined') {
+    (window as any).__QUEST_DIFFICULTY_COUNT__ = QUEST_DIFFICULTY.length;
+    (window as any).__QUEST_DIFFICULTY__ = QUEST_DIFFICULTY;
+  }
+}
 
 export function achievementProgressPct(a: Achievement): number {
   if (a.unlocked) return 100;

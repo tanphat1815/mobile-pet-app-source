@@ -1,17 +1,15 @@
 /**
  * QuestRow
  *
- * One row in the quest list. Shows:
- *   - Quest icon + title + category
- *   - Countdown (or "Completed" / "Expired")
- *   - Aggregate progress bar
- *   - Each objective as a sub-line with a checkbox-style indicator
- *   - Reward (coins + XP)
- *   - Optional Claim button when completed
+ * One row in the quest list. Step 6 thêm:
+ *   - Difficulty chip (4 levels × màu)
+ *   - Streak bonus multiplier in reward line
+ *   - Tier badge (daily/weekly/event)
+ *   - Optional reroll button (for daily/active quests)
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -24,18 +22,24 @@ import {
   questProgressPct,
   questCountdownLabel,
   isQuestExpired,
+  getDifficultyMeta,
+  applyRewardMultiplier,
 } from '../../api/achievementTypes';
 import { Badge } from './Badge';
 import { Button } from './Button';
+import { QuestDifficultyChip } from './QuestDifficultyChip';
+import { hapticLight } from '../../utils/haptics';
 
 export interface QuestRowProps {
   quest: Quest;
   now: number;
   onClaim?: () => void;
+  onReroll?: () => void;
   claiming?: boolean;
+  rerolling?: boolean;
 }
 
-export function QuestRow({ quest, now, onClaim, claiming }: QuestRowProps) {
+export function QuestRow({ quest, now, onClaim, onReroll, claiming, rerolling }: QuestRowProps) {
   const theme = useTheme();
   const pct = questProgressPct(quest);
   const expired = isQuestExpired(quest, now);
@@ -60,8 +64,20 @@ export function QuestRow({ quest, now, onClaim, claiming }: QuestRowProps) {
   const totalXp = quest.objectives.filter((o) => o.done).length;
   const totalObj = quest.objectives.length;
 
+  // Step 6 — reward với difficulty + streak multiplier
+  const baseXp = quest.rewardXP ?? 0;
+  const baseCoins = quest.rewardCoins ?? 0;
+  const finalXp = applyRewardMultiplier(baseXp, quest.difficulty, quest.streakBonus);
+  const finalCoins = applyRewardMultiplier(baseCoins, quest.difficulty, quest.streakBonus);
+
+  // Reroll cost label
+  const rerollLabel = quest.freeRerollsLeft > 0
+    ? '🎁 Free'
+    : `🪙 ${quest.rerollCost}`;
+
   return (
     <View
+      testID={`quest-row-${quest.tier}-${quest.id}`}
       style={[
         styles.root,
         {
@@ -91,11 +107,7 @@ export function QuestRow({ quest, now, onClaim, claiming }: QuestRowProps) {
             >
               {quest.title}
             </Text>
-            {quest.category && (
-              <View style={{ marginLeft: 8 }}>
-                <Badge label={quest.category} variant="neutral" size="sm" />
-              </View>
-            )}
+            <QuestDifficultyChip difficulty={quest.difficulty} />
           </View>
           <Text
             style={[
@@ -109,6 +121,12 @@ export function QuestRow({ quest, now, onClaim, claiming }: QuestRowProps) {
           >
             {quest.description}
           </Text>
+          <View style={styles.metaRow}>
+            <Badge label={quest.tier.toUpperCase()} variant="neutral" size="sm" />
+            {quest.category && (
+              <Badge label={quest.category} variant="neutral" size="sm" />
+            )}
+          </View>
         </View>
         {status === 'completed' ? (
           <Badge label="Done" variant="success" size="sm" />
@@ -194,21 +212,44 @@ export function QuestRow({ quest, now, onClaim, claiming }: QuestRowProps) {
             fontSize: theme.typography.size.caption1,
           }}
         >
-          {totalXp}/{totalObj} done
-          {quest.rewardCoins !== undefined && (
-            <> • +{quest.rewardCoins} 🪙</>
-          )}
-          {quest.rewardXP !== undefined && <> • +{quest.rewardXP} XP</>}
+          {totalXp}/{totalObj} done • +{finalCoins} 🪙 • +{finalXp} XP
+          {quest.streakBonus > 1 ? ` (×${quest.streakBonus.toFixed(1)})` : ''}
         </Text>
-        {completed && status !== 'expired' && onClaim && (
-          <Button
-            title="Claim"
-            onPress={onClaim}
-            variant="primary"
-            size="sm"
-            loading={claiming}
-          />
-        )}
+        <View style={styles.actionRow}>
+          {status === 'active' && onReroll ? (
+            <Pressable
+              testID={`reroll-btn-${quest.id}`}
+              onPress={() => {
+                hapticLight();
+                onReroll();
+              }}
+              disabled={rerolling}
+              style={({ pressed }) => [
+                styles.rerollBtn,
+                {
+                  backgroundColor: pressed
+                    ? theme.colors.surfaceMuted
+                    : theme.colors.surface2,
+                  borderColor: theme.colors.border,
+                  opacity: rerolling ? 0.5 : 1,
+                },
+              ]}
+            >
+              <Text style={{ color: theme.colors.accent, fontWeight: '600', fontSize: 12 }}>
+                🔄 {rerollLabel}
+              </Text>
+            </Pressable>
+          ) : null}
+          {completed && status !== 'expired' && onClaim ? (
+            <Button
+              title="Claim"
+              onPress={onClaim}
+              variant="primary"
+              size="sm"
+              loading={claiming ?? false}
+            />
+          ) : null}
+        </View>
       </View>
     </View>
   );
@@ -236,12 +277,19 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 2,
+    marginBottom: 4,
+    gap: 6,
+    flexWrap: 'wrap',
   },
   title: {
     flexShrink: 1,
   },
   description: {},
+  metaRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 4,
+  },
   countdown: {
     marginLeft: 8,
   },
@@ -266,5 +314,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  rerollBtn: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
 });

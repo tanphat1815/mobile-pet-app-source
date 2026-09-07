@@ -11,11 +11,14 @@ import {
   listQuests,
   claimQuestReward,
   unlockAchievement,
+  rerollQuest,
+  getStreak,
 } from '../api/achievements';
 import {
   Achievement,
   Quest,
 } from '../api/achievementTypes';
+import { Streak } from '../api/streakTracker';
 import { useSyncEvent } from './SyncStore';
 
 // ============================================================================
@@ -27,16 +30,20 @@ export type DataStatus = 'idle' | 'loading' | 'ready' | 'error';
 export interface AchievementState {
   achievements: Achievement[];
   quests: Quest[];
+  streak: Streak | null;
   status: DataStatus;
   error: string | null;
   claiming: boolean;
+  rerolling: boolean;
   lastClaimedCoins: number;
   lastClaimedXP: number;
 
   loadAll: () => Promise<void>;
   loadAchievements: () => Promise<void>;
   loadQuests: () => Promise<void>;
+  loadStreak: () => Promise<void>;
   claimReward: (questId: string) => Promise<{ coins: number; xp: number }>;
+  reroll: (questId: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -44,12 +51,14 @@ export interface AchievementState {
 // Store
 // ============================================================================
 
-export const useAchievementStore = create<AchievementState>((set) => ({
+export const useAchievementStore = create<AchievementState>((set, get) => ({
   achievements: [],
   quests: [],
+  streak: null,
   status: 'idle',
   error: null,
   claiming: false,
+  rerolling: false,
   lastClaimedCoins: 0,
   lastClaimedXP: 0,
 
@@ -60,7 +69,8 @@ export const useAchievementStore = create<AchievementState>((set) => ({
         listAchievements(),
         listQuests(),
       ]);
-      set({ achievements, quests, status: 'ready' });
+      const streak = await getStreak();
+      set({ achievements, quests, streak, status: 'ready' });
     } catch (err) {
       set({
         status: 'error',
@@ -93,6 +103,15 @@ export const useAchievementStore = create<AchievementState>((set) => ({
     }
   },
 
+  loadStreak: async () => {
+    try {
+      const streak = await getStreak();
+      set({ streak });
+    } catch {
+      /* ignore */
+    }
+  },
+
   claimReward: async (questId: string) => {
     set({ claiming: true });
     try {
@@ -100,6 +119,9 @@ export const useAchievementStore = create<AchievementState>((set) => ({
       set({
         lastClaimedCoins: res.coins,
         lastClaimedXP: res.xp,
+        quests: get().quests.map((q) =>
+          q.id === questId ? { ...q, status: 'claimed' as const } : q
+        ),
       });
       return res;
     } finally {
@@ -107,13 +129,35 @@ export const useAchievementStore = create<AchievementState>((set) => ({
     }
   },
 
+  reroll: async (questId: string) => {
+    set({ rerolling: true });
+    try {
+      const updated = await rerollQuest(questId, 0);
+      const prev = get().quests.find((q) => q.id === questId);
+      const usedFreeReroll = (prev?.freeRerollsLeft ?? 0) > 0;
+      set({
+        quests: get().quests.map((q) => {
+          if (q.id === questId) return updated;
+          if (usedFreeReroll && q.tier === 'daily') {
+            return { ...q, freeRerollsLeft: Math.max(0, q.freeRerollsLeft - 1) };
+          }
+          return q;
+        }),
+      });
+    } finally {
+      set({ rerolling: false });
+    }
+  },
+
   reset: () => {
     set({
       achievements: [],
       quests: [],
+      streak: null,
       status: 'idle',
       error: null,
       claiming: false,
+      rerolling: false,
       lastClaimedCoins: 0,
       lastClaimedXP: 0,
     });
