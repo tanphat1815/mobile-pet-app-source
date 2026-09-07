@@ -44,6 +44,7 @@ export type SyncEventType =
   | 'pairing:code' // cross-device pairing code issued
   | 'pairing:confirmed' // pairing confirmed
   | 'friend:activity' // Step 4 — friend activity event (level up, gift, ...)
+  | 'notification:new' // Step 9 — new in-app notification
   | 'error'; // generic error event
 
 export type ClientMessageType =
@@ -197,6 +198,15 @@ export interface FriendActivityEvent {
   createdAt?: number;
 }
 
+// Step 9 — notification:new event
+export interface NotificationNewEvent {
+  id?: string;
+  kind?: string;
+  title: string;
+  body?: string;
+  payload?: Record<string, unknown>;
+}
+
 export interface ErrorEvent {
   code: string;
   message: string;
@@ -222,5 +232,6 @@ export interface SyncEventPayloadMap {
   'pairing:code': PairingCodeEvent;
   'pairing:confirmed': PairingConfirmedEvent;
   'friend:activity': FriendActivityEvent;
+  'notification:new': NotificationNewEvent;
   error: ErrorEvent;
 }

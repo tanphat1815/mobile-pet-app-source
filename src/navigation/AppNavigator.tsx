@@ -30,6 +30,8 @@ import { SettingsScreen } from '../screens/SettingsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { BiometricLoginScreen } from '../screens/BiometricLoginScreen';
+import { NotificationBannerHost } from '../shared/components/NotificationBanner';
+import { NotificationLifecycle } from '../stores/NotificationLifecycle';
 import { initHapticsAccessibility, hapticSuccess } from '../utils/haptics';
 import { getBiometricCapability, biometryLabel } from '../api/biometric';
 import type { RootStackParamList, MainStackParamList } from './types';
@@ -220,7 +222,11 @@ function MainNavigator() {
 export function AppNavigator() {
   return (
     <AuthRestorer>
-      <RootNavigator />
+      <NotificationLifecycle>
+        <RootNavigator />
+      </NotificationLifecycle>
+      {/* Step 9 — notification banner toast overlay */}
+      <NotificationBannerHost />
     </AuthRestorer>
   );
 }

@@ -30,6 +30,7 @@ export const StorageKeys = {
   OnboardingComplete: 'onboarding.complete',
   PushToken: 'notifications.push_token',
   LastNotification: 'notifications.last',
+  NotificationHistory: 'notifications.history', // Step 9 — in-app notification center
   UserSettings: 'settings.user_settings',
 } as const;
 
