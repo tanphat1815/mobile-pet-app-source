@@ -1,22 +1,27 @@
 /**
- * ProfileScreen
+ * ProfileScreen — Step 7 Rich Profile
  *
- * Shows the current user's profile + an inline edit panel for the
- * display name and avatar URL. Stats row at the bottom summarises
- * the user's pet level, friend count, achievements, and streak.
+ * Port từ desktop profile-view.html / profile-editor.html:
+ *  - Banner (gradient fallback hoặc URL)
+ *  - Avatar với frame border + glow
+ *  - Title badge dưới tên
+ *  - Bio text block
+ *  - Friend code pill (copy-to-clipboard)
+ *  - Social chips (tap → open external URL)
+ *  - Edit modal: change bio/title/frame/banner/social handles
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
-  TextInput,
-  Image,
+  Alert,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  Share,
+  Pressable,
 } from 'react-native';
 import { useTheme } from '../utils/useTheme';
 import { useAuthStore } from '../stores/AuthStore';
@@ -27,6 +32,14 @@ import { Modal } from '../shared/components/Modal';
 import { TextField } from '../shared/components/TextField';
 import { hapticLight, hapticSuccess, hapticError } from '../utils/haptics';
 import { formatRelativeTime } from '../api/chatTypes';
+import { AvatarFrame } from '../shared/components/AvatarFrame';
+import { BannerBackground } from '../shared/components/BannerBackground';
+import { FriendCodePill } from '../shared/components/FriendCodePill';
+import { TitleBadge } from '../shared/components/TitleBadge';
+import { SocialChips } from '../shared/components/SocialChips';
+import { FramePicker } from '../shared/components/FramePicker';
+import { getAvatarFrame } from '../api/avatarFrames';
+import { SOCIAL_PLATFORMS, makeFriendCode } from '../api/profileTypes';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../navigation/types';
 
@@ -35,9 +48,6 @@ type Props = NativeStackScreenProps<MainStackParamList, 'Profile'>;
 export function ProfileScreen({ navigation }: Props) {
   const theme = useTheme();
   const user = useAuthStore((s) => s.user);
-  const setBiometricEnabledPreference = useAuthStore(
-    (s) => s.setBiometricEnabledPreference
-  );
 
   const stats = useSettingsStore((s) => s.stats);
   const statsStatus = useSettingsStore((s) => s.statsStatus);
@@ -47,34 +57,95 @@ export function ProfileScreen({ navigation }: Props) {
   const profileError = useSettingsStore((s) => s.profileError);
 
   const [editOpen, setEditOpen] = useState(false);
-  const [displayName, setDisplayName] = useState(user?.displayName ?? '');
-  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl ?? '');
+  const [bio, setBio] = useState(user?.bio ?? '');
+  const [title, setTitle] = useState(user?.title ?? '');
+  const [frameId, setFrameId] = useState(user?.frameId ?? 'none');
+  const [bannerUrl, setBannerUrl] = useState<string | null>(user?.bannerUrl ?? null);
+  const [socialDiscord, setSocialDiscord] = useState(user?.socials?.discord ?? '');
+  const [socialTwitter, setSocialTwitter] = useState(user?.socials?.twitter ?? '');
+  const [socialInstagram, setSocialInstagram] = useState(user?.socials?.instagram ?? '');
+  const [socialTiktok, setSocialTiktok] = useState(user?.socials?.tiktok ?? '');
+  const [socialTwitch, setSocialTwitch] = useState(user?.socials?.twitch ?? '');
 
   useEffect(() => {
     if (statsStatus === 'idle') loadStats();
   }, [statsStatus, loadStats]);
 
   useEffect(() => {
-    setDisplayName(user?.displayName ?? '');
-    setAvatarUrl(user?.avatarUrl ?? '');
-  }, [user?.displayName, user?.avatarUrl]);
+    setBio(user?.bio ?? '');
+    setTitle(user?.title ?? '');
+    setFrameId(user?.frameId ?? 'none');
+    setBannerUrl(user?.bannerUrl ?? null);
+    setSocialDiscord(user?.socials?.discord ?? '');
+    setSocialTwitter(user?.socials?.twitter ?? '');
+    setSocialInstagram(user?.socials?.instagram ?? '');
+    setSocialTiktok(user?.socials?.tiktok ?? '');
+    setSocialTwitch(user?.socials?.twitch ?? '');
+  }, [
+    user?.bio,
+    user?.title,
+    user?.frameId,
+    user?.bannerUrl,
+    user?.socials?.discord,
+    user?.socials?.twitter,
+    user?.socials?.instagram,
+    user?.socials?.tiktok,
+    user?.socials?.twitch,
+  ]);
+
+  const friendCode = useMemo(
+    () => user?.friendCode ?? makeFriendCode(),
+    [user?.friendCode]
+  );
 
   const handleSave = useCallback(async () => {
     try {
-      await saveProfile({ displayName, avatarUrl });
+      await saveProfile({
+        bio,
+        title,
+        frameId,
+        bannerUrl,
+        socials: {
+          discord: socialDiscord || undefined,
+          twitter: socialTwitter || undefined,
+          instagram: socialInstagram || undefined,
+          tiktok: socialTiktok || undefined,
+          twitch: socialTwitch || undefined,
+        },
+      });
       hapticSuccess();
       setEditOpen(false);
     } catch {
       hapticError();
     }
-  }, [saveProfile, displayName, avatarUrl]);
+  }, [
+    saveProfile,
+    bio,
+    title,
+    frameId,
+    bannerUrl,
+    socialDiscord,
+    socialTwitter,
+    socialInstagram,
+    socialTiktok,
+    socialTwitch,
+  ]);
 
   const handleOpenEdit = useCallback(() => {
     hapticLight();
-    setDisplayName(user?.displayName ?? '');
-    setAvatarUrl(user?.avatarUrl ?? '');
     setEditOpen(true);
-  }, [user?.displayName, user?.avatarUrl]);
+  }, []);
+
+  const handleShare = useCallback(async () => {
+    try {
+      await Share.share({
+        message: `Add me on Pet App! My friend code is ${friendCode}`,
+        title: 'Pet App friend code',
+      });
+    } catch {
+      /* user cancelled */
+    }
+  }, [friendCode]);
 
   if (!user) {
     return (
@@ -93,6 +164,8 @@ export function ProfileScreen({ navigation }: Props) {
     );
   }
 
+  const frame = getAvatarFrame(user.frameId);
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -103,64 +176,70 @@ export function ProfileScreen({ navigation }: Props) {
         contentContainerStyle={{ paddingBottom: theme.spacing.xxxl }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+        {/* Banner */}
+        <BannerBackground
+          bannerUrl={user.bannerUrl ?? null}
+          seed={user.id}
+          height={180}
+        />
+
+        {/* Action row over banner */}
         <View
           style={[
-            styles.header,
+            styles.actionRow,
             {
-              paddingTop: theme.spacing.xxxl,
-              paddingHorizontal: theme.spacing.lg,
-              paddingBottom: theme.spacing.lg,
+              top: 60,
+              right: 16,
             },
           ]}
         >
-          <Text
-            style={{
-              color: theme.colors.text,
-              fontSize: theme.typography.size.title1,
-              fontWeight: '700',
-            }}
-          >
-            Profile
-          </Text>
-        </View>
-
-        {/* Avatar + name */}
-        <View style={styles.profileBlock}>
-          <View
-            style={[
-              styles.avatar,
+          <Pressable
+            testID="share-profile-btn"
+            onPress={handleShare}
+            style={({ pressed }) => [
+              styles.actionBtn,
               {
-                backgroundColor: theme.colors.surface2,
-                borderRadius: 64,
-                borderColor: theme.colors.border,
+                backgroundColor: pressed
+                  ? 'rgba(255,255,255,0.95)'
+                  : 'rgba(255,255,255,0.85)',
               },
             ]}
           >
-            {user.avatarUrl ? (
-              <Image
-                source={{ uri: user.avatarUrl }}
-                style={{ width: 124, height: 124, borderRadius: 62 }}
-              />
-            ) : (
-              <Text style={{ fontSize: 64 }}>🐶</Text>
-            )}
+            <Text style={styles.actionIcon}>📤</Text>
+          </Pressable>
+        </View>
+
+        {/* Avatar block */}
+        <View style={styles.profileBlock}>
+          <View style={{ marginTop: -50 }}>
+            <AvatarFrame
+              frame={frame}
+              size={110}
+              source={user.avatarUrl ? { uri: user.avatarUrl } : undefined}
+              testID="profile-avatar-frame"
+            />
           </View>
           <Text
+            testID="profile-display-name"
             style={{
               color: theme.colors.text,
               fontSize: theme.typography.size.title2,
               fontWeight: '700',
-              marginTop: 16,
+              marginTop: 12,
             }}
           >
             {user.displayName || 'Pet parent'}
           </Text>
+          {!!user.title && (
+            <View style={{ marginTop: 6 }}>
+              <TitleBadge title={user.title} />
+            </View>
+          )}
           <Text
             style={{
               color: theme.colors.textSecondary,
               fontSize: theme.typography.size.subhead,
-              marginTop: 4,
+              marginTop: 6,
             }}
           >
             {user.email}
@@ -175,7 +254,7 @@ export function ProfileScreen({ navigation }: Props) {
             Member for {formatRelativeTime(user.createdAt)}
           </Text>
 
-          <View style={{ height: 16 }} />
+          <View style={{ height: 12 }} />
           <Button
             title="Edit profile"
             onPress={handleOpenEdit}
@@ -183,26 +262,60 @@ export function ProfileScreen({ navigation }: Props) {
           />
         </View>
 
-        {/* Stats */}
-        <View
-          style={{
-            paddingHorizontal: theme.spacing.lg,
-            paddingTop: theme.spacing.sm,
-          }}
-        >
+        {/* Bio */}
+        {!!user.bio && (
+          <View style={styles.section}>
+            <Card>
+              <Text
+                testID="profile-bio"
+                style={{
+                  color: theme.colors.text,
+                  fontSize: theme.typography.size.body,
+                  lineHeight: 22,
+                }}
+              >
+                {user.bio}
+              </Text>
+            </Card>
+          </View>
+        )}
+
+        {/* Friend code */}
+        <View style={styles.section}>
           <Text
-            style={{
-              color: theme.colors.textSecondary,
-              fontSize: theme.typography.size.caption1,
-              fontWeight: '600',
-              letterSpacing: 0.5,
-              textTransform: 'uppercase',
-              marginBottom: theme.spacing.sm,
-            }}
+            style={[
+              styles.sectionLabel,
+              { color: theme.colors.textSecondary },
+            ]}
+          >
+            Friend code
+          </Text>
+          <FriendCodePill code={friendCode} />
+        </View>
+
+        {/* Socials */}
+        <View style={styles.section}>
+          <Text
+            style={[
+              styles.sectionLabel,
+              { color: theme.colors.textSecondary },
+            ]}
+          >
+            Connect
+          </Text>
+          <SocialChips socials={user.socials} />
+        </View>
+
+        {/* Stats */}
+        <View style={[styles.section, { marginTop: 8 }]}>
+          <Text
+            style={[
+              styles.sectionLabel,
+              { color: theme.colors.textSecondary },
+            ]}
           >
             Your stats
           </Text>
-
           <View
             style={{
               flexDirection: 'row',
@@ -242,12 +355,7 @@ export function ProfileScreen({ navigation }: Props) {
         </View>
 
         {/* Quick links */}
-        <View
-          style={{
-            paddingHorizontal: theme.spacing.lg,
-            paddingTop: theme.spacing.lg,
-          }}
-        >
+        <View style={styles.section}>
           <Card>
             <Button
               title="Open settings"
@@ -265,25 +373,106 @@ export function ProfileScreen({ navigation }: Props) {
         onRequestClose={() => setEditOpen(false)}
         title="Edit profile"
       >
-        <View style={{ padding: 16 }}>
+        <ScrollView
+          style={{ padding: 16 }}
+          contentContainerStyle={{ paddingBottom: 24 }}
+          keyboardShouldPersistTaps="handled"
+        >
           <TextField
-            label="Display name"
-            value={displayName}
-            onChangeText={setDisplayName}
-            placeholder="e.g. Mochi"
+            label="Title"
+            value={title}
+            onChangeText={setTitle}
+            placeholder="e.g. Legendary Pet Parent"
             maxLength={40}
-            autoCapitalize="words"
           />
           <View style={{ height: 12 }} />
           <TextField
-            label="Avatar URL"
-            value={avatarUrl}
-            onChangeText={setAvatarUrl}
-            placeholder="https://..."
+            label="Bio"
+            value={bio}
+            onChangeText={setBio}
+            placeholder="Tell friends about yourself…"
+            multiline
+            numberOfLines={4}
+            maxLength={280}
+          />
+          <View style={{ height: 12 }} />
+          <TextField
+            label="Banner image URL (optional)"
+            value={bannerUrl ?? ''}
+            onChangeText={(v) => setBannerUrl(v || null)}
+            placeholder="https://…"
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
           />
+          <View style={{ height: 16 }} />
+          <Text
+            style={{
+              color: theme.colors.textSecondary,
+              fontSize: theme.typography.size.caption1,
+              fontWeight: '600',
+              letterSpacing: 0.5,
+              textTransform: 'uppercase',
+              marginBottom: 8,
+            }}
+          >
+            Avatar frame
+          </Text>
+          <FramePicker selected={frameId} onSelect={setFrameId} />
+
+          <View style={{ height: 16 }} />
+          <Text
+            style={{
+              color: theme.colors.textSecondary,
+              fontSize: theme.typography.size.caption1,
+              fontWeight: '600',
+              letterSpacing: 0.5,
+              textTransform: 'uppercase',
+              marginBottom: 8,
+            }}
+          >
+            Social handles
+          </Text>
+          <TextField
+            label="Discord"
+            value={socialDiscord}
+            onChangeText={setSocialDiscord}
+            placeholder="username"
+            autoCapitalize="none"
+          />
+          <View style={{ height: 8 }} />
+          <TextField
+            label="Twitter / X"
+            value={socialTwitter}
+            onChangeText={setSocialTwitter}
+            placeholder="@handle"
+            autoCapitalize="none"
+          />
+          <View style={{ height: 8 }} />
+          <TextField
+            label="Instagram"
+            value={socialInstagram}
+            onChangeText={setSocialInstagram}
+            placeholder="@handle"
+            autoCapitalize="none"
+          />
+          <View style={{ height: 8 }} />
+          <TextField
+            label="TikTok"
+            value={socialTiktok}
+            onChangeText={setSocialTiktok}
+            placeholder="@handle"
+            autoCapitalize="none"
+          />
+          <View style={{ height: 8 }} />
+          <TextField
+            label="Twitch"
+            value={socialTwitch}
+            onChangeText={setSocialTwitch}
+            placeholder="@handle"
+            autoCapitalize="none"
+          />
+
           {profileError ? (
             <Text
               style={{
@@ -297,13 +486,15 @@ export function ProfileScreen({ navigation }: Props) {
             </Text>
           ) : null}
           <View style={{ height: 16 }} />
-          <Button
-            title="Save"
-            onPress={handleSave}
-            loading={profileSaving}
-            disabled={profileSaving}
-            style={{ alignSelf: 'stretch' }}
-          />
+          <View testID="save-profile-btn">
+            <Button
+              title="Save"
+              onPress={handleSave}
+              loading={profileSaving}
+              disabled={profileSaving}
+              style={{ alignSelf: 'stretch' }}
+            />
+          </View>
           <View style={{ height: 8 }} />
           <Button
             title="Cancel"
@@ -311,7 +502,7 @@ export function ProfileScreen({ navigation }: Props) {
             variant="ghost"
             style={{ alignSelf: 'stretch' }}
           />
-        </View>
+        </ScrollView>
       </Modal>
     </KeyboardAvoidingView>
   );
@@ -366,17 +557,35 @@ function StatCard({ icon, value, label, theme }: StatCardProps) {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: {},
   profileBlock: {
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingBottom: 16,
   },
-  avatar: {
-    width: 124,
-    height: 124,
+  actionRow: {
+    position: 'absolute',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+  },
+  actionIcon: {
+    fontSize: 18,
+  },
+  section: {
+    paddingHorizontal: 16,
+    marginTop: 14,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
   },
 });

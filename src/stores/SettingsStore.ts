@@ -13,6 +13,7 @@ import {
   updateProfile,
   getUserStats,
   UserStats,
+  UpdateProfileInput,
 } from '../api/settings';
 import { UserSettings, DEFAULT_SETTINGS } from '../api/settingsTypes';
 import { ThemeId, isThemeUnlocked } from '../utils/appThemes';
@@ -51,7 +52,7 @@ export interface SettingsState {
    * theme chưa unlock (insufficient coins) → UI show toast.
    */
   setAppTheme: (id: ThemeId, coinsBalance?: number) => Promise<boolean>;
-  saveProfile: (patch: { displayName?: string; avatarUrl?: string }) => Promise<AuthUser>;
+  saveProfile: (patch: UpdateProfileInput) => Promise<AuthUser>;
   reset: () => void;
 }
 
