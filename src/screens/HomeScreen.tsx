@@ -414,6 +414,39 @@ export function HomeScreen({ navigation }: Props) {
         </View>
       </Card>
 
+      {/* Wellness quick-link */}
+      <Card style={styles.section}>
+        <View style={styles.chatLinkRow}>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                color: theme.colors.text,
+                fontSize: theme.typography.size.headline,
+                fontWeight: '600',
+              }}
+            >
+              Wellness
+            </Text>
+            <Text
+              style={{
+                color: theme.colors.textSecondary,
+                fontSize: theme.typography.size.subhead,
+                marginTop: 2,
+              }}
+            >
+              Meditation · Breathing · Mood
+            </Text>
+          </View>
+          <Button
+            title="Open"
+            onPress={() => navigation.navigate('WellnessHome')}
+            variant="primary"
+            size="sm"
+            testID="home-wellness-open"
+          />
+        </View>
+      </Card>
+
       {/* Achievements quick-link */}
       <Card style={styles.section}>
         <View style={styles.chatLinkRow}>

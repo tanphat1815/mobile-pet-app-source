@@ -35,6 +35,7 @@ interface ButtonProps {
   disabled?: boolean;
   loading?: boolean;
   style?: ViewStyle;
+  testID?: string;
 }
 
 export function Button({
@@ -45,6 +46,7 @@ export function Button({
   disabled = false,
   loading = false,
   style,
+  testID,
 }: ButtonProps) {
   const theme = useTheme();
   const scale = useSharedValue(1);
@@ -113,6 +115,7 @@ export function Button({
       accessibilityRole="button"
       accessibilityState={{ disabled: disabled || loading, busy: loading }}
       style={[styles.touchable, style]}
+      testID={testID}
     >
       <Animated.View style={[containerStyle, animatedStyle]}>
         {loading ? (
