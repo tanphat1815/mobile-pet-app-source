@@ -8,7 +8,15 @@
 
 import apiClient, { getApiError } from './client';
 import { getStoredToken } from './storage';
-import { Pet, PetAction, PetActionResponse, defaultEmoji } from './petTypes';
+import {
+  Pet,
+  PetAction,
+  PetActionResponse,
+  defaultEmoji,
+  applyCareEffect,
+  cooldownRemaining,
+  getCareEffect,
+} from './petTypes';
 
 // ============================================================================
 // Mock state (development only)
@@ -27,7 +35,10 @@ function makeMockPet(): Pet {
       energy: 60,
       xp: 245,
       level: 3,
+      cleanliness: 50,
+      health: 85,
     },
+    cooldowns: {},
     updatedAt: Date.now(),
     emoji: '🐱',
   };
@@ -40,58 +51,9 @@ function clamp(n: number, min = 0, max = 100): number {
 }
 
 function applyAction(pet: Pet, action: PetAction): Pet {
-  const stats = { ...pet.stats };
-  let mood: Pet['mood'] = pet.mood;
-  let message = '';
-
-  switch (action) {
-    case 'feed':
-      stats.hunger = clamp(stats.hunger + 30);
-      stats.happiness = clamp(stats.happiness + 5);
-      stats.xp += 15;
-      mood = 'eating';
-      message = 'Yum! 🍱';
-      break;
-    case 'play':
-      stats.happiness = clamp(stats.happiness + 25);
-      stats.energy = clamp(stats.energy - 15);
-      stats.hunger = clamp(stats.hunger - 10);
-      stats.xp += 20;
-      mood = 'playing';
-      message = 'Wheee! 🎉';
-      break;
-    case 'sleep':
-      stats.energy = clamp(stats.energy + 40);
-      stats.hunger = clamp(stats.hunger - 10);
-      stats.xp += 5;
-      mood = 'sleeping';
-      message = 'Zzz... 💤';
-      break;
-    case 'pet':
-      stats.happiness = clamp(stats.happiness + 10);
-      stats.xp += 3;
-      mood = 'happy';
-      message = 'Purr... 💕';
-      break;
-  }
-
-  // Level up: if xp exceeds threshold, reset and bump level
-  let { level } = stats;
-  let xp = stats.xp;
-  const xpNeeded = Math.round(100 * Math.pow(level, 1.5));
-  while (xp >= xpNeeded) {
-    xp -= xpNeeded;
-    level += 1;
-  }
-  stats.level = level;
-  stats.xp = xp;
-
-  return {
-    ...pet,
-    stats,
-    mood,
-    updatedAt: Date.now(),
-  };
+  // Step 10 — Use the unified applyCareEffect helper so the mock
+  // server, optimistic UI updates, and effects table all agree.
+  return applyCareEffect(pet, action);
 }
 
 // ============================================================================
@@ -113,6 +75,15 @@ export async function getPet(): Promise<Pet> {
 }
 
 export async function performPetAction(action: PetAction): Promise<PetActionResponse> {
+  // Step 10 — Validate cooldown + precondition before calling the API.
+  const remaining = cooldownRemaining(mockPet, action);
+  if (remaining > 0) {
+    throw new Error(`Action is on cooldown (${Math.ceil(remaining / 1000)}s remaining)`);
+  }
+  const effect = getCareEffect(action);
+  if (effect.enabledWhen && !effect.enabledWhen(mockPet.stats)) {
+    throw new Error(effect.disabledReason ?? 'Action is not available right now');
+  }
   try {
     await apiClient.post('/post', { action: `pet_${action}` });
   } catch (err) {
@@ -121,7 +92,10 @@ export async function performPetAction(action: PetAction): Promise<PetActionResp
     // Network fallback for development: simulate action locally
   }
   mockPet = applyAction(mockPet, action);
-  return { pet: { ...mockPet, emoji: mockPet.emoji ?? defaultEmoji(mockPet.species) }, message: undefined };
+  return {
+    pet: { ...mockPet, emoji: mockPet.emoji ?? defaultEmoji(mockPet.species) },
+    message: effect.message,
+  };
 }
 
 /**
@@ -130,4 +104,29 @@ export async function performPetAction(action: PetAction): Promise<PetActionResp
  */
 export function applyLocalPetAction(pet: Pet, action: PetAction): Pet {
   return applyAction(pet, action);
+}
+
+/**
+ * Step 10 — Reset mock state (used by tests / debug panel).
+ */
+export function resetMockPet(): void {
+  mockPet = makeMockPet();
+}
+
+/**
+ * Step 10 — Get / set the mock pet's stats directly (used by
+ * Playwright tests + debug panels).
+ */
+export function getMockPet(): Pet {
+  return { ...mockPet };
+}
+
+export function setMockStat<K extends keyof Pet['stats']>(
+  key: K,
+  value: Pet['stats'][K]
+): void {
+  mockPet = {
+    ...mockPet,
+    stats: { ...mockPet.stats, [key]: value },
+  };
 }

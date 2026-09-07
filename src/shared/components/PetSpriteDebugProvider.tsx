@@ -112,7 +112,7 @@ export function PetSpriteDebugProvider(): null {
           name: 'TestPet',
           species: 'cat',
           mood: 'idle',
-          stats: { hunger: 50, happiness: 50, energy: 50, xp: 0, level: 1 },
+          stats: { hunger: 50, happiness: 50, energy: 50, xp: 0, level: 1, cleanliness: 50, health: 80 },
           updatedAt: Date.now(),
           emoji: '🐱',
         };

@@ -9,7 +9,7 @@
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { useTheme } from '../utils/useTheme';
 import { useReducedMotion } from '../utils/useReducedMotion';
 import { useAuthStore } from '../stores/AuthStore';
@@ -30,8 +30,14 @@ import { SyncStatusBadge } from '../shared/components/SyncStatusBadge';
 import { NotificationCard } from '../shared/components/NotificationCard';
 import { NotificationBell } from '../shared/components/NotificationBell';
 import { NotificationCenter } from '../shared/components/NotificationCenter';
+import { PetCareSheet } from '../shared/components/PetCareSheet';
 import { useNotificationStore } from '../stores/NotificationStore';
 import type { PetAction } from '../api/petTypes';
+import {
+  cooldownRemaining,
+  cooldownLabel,
+  actionDisabledReason,
+} from '../api/petTypes';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../navigation/types';
 
@@ -41,13 +47,18 @@ const PET_ACTIONS: { action: PetAction; label: string; emoji: string }[] = [
   { action: 'feed', label: 'Feed', emoji: '🍱' },
   { action: 'play', label: 'Play', emoji: '🎾' },
   { action: 'sleep', label: 'Sleep', emoji: '💤' },
-  { action: 'pet', label: 'Pet', emoji: '💕' },
+  { action: 'pet', label: 'Pet', emoji: '❤️' },
+  // Step 10 — Care actions
+  { action: 'bath', label: 'Bath', emoji: '🛁' },
+  { action: 'medicine', label: 'Med', emoji: '💊' },
+  { action: 'vitamin', label: 'Vit', emoji: '🌿' },
 ];
 
 export function HomeScreen({ navigation }: Props) {
   const theme = useTheme();
   const reducedMotion = useReducedMotion();
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+  const [showCareSheet, setShowCareSheet] = useState(false);
 
   const { user, status, logout } = useAuthStore();
   const syncStatus = useSyncStore((s) => s.status);
@@ -209,22 +220,49 @@ export function HomeScreen({ navigation }: Props) {
               value={pet.stats.energy}
               reducedMotion={reducedMotion}
             />
+            {/* Step 10 — cleanliness + health stats */}
+            <StatBar
+              label="Cleanliness"
+              value={pet.stats.cleanliness}
+              reducedMotion={reducedMotion}
+            />
+            <StatBar
+              label="Health"
+              value={pet.stats.health}
+              reducedMotion={reducedMotion}
+            />
 
             <View style={{ height: theme.spacing.md }} />
 
             {/* Action grid */}
             <View style={styles.actionGrid}>
-              {PET_ACTIONS.map(({ action, label, emoji }) => (
-                <PetActionButton
-                  key={action}
-                  action={action}
-                  label={label}
-                  emoji={emoji}
-                  onPress={() => performAction(action)}
-                  pending={pendingActions.has(action)}
-                />
-              ))}
+              {PET_ACTIONS.map(({ action, label, emoji }) => {
+                const cd = cooldownRemaining(pet, action);
+                const disabledReason = actionDisabledReason(pet, action);
+                return (
+                  <PetActionButton
+                    key={action}
+                    action={action}
+                    label={
+                      cd > 0
+                        ? `${label} (${cooldownLabel(cd)})`
+                        : label
+                    }
+                    emoji={emoji}
+                    onPress={() => performAction(action)}
+                    disabled={cd > 0 || !!disabledReason}
+                    pending={pendingActions.has(action)}
+                  />
+                );
+              })}
             </View>
+
+            <View style={{ height: theme.spacing.md }} />
+            <Button
+              title="🛁 Pet Care"
+              variant="secondary"
+              onPress={() => setShowCareSheet(true)}
+            />
           </>
         ) : petStatus === 'loading' ? (
           <View style={styles.loadingContainer}>
@@ -458,6 +496,19 @@ export function HomeScreen({ navigation }: Props) {
       visible={showNotificationCenter}
       onClose={() => setShowNotificationCenter(false)}
     />
+
+    {/* Step 10 — Pet Care sheet */}
+    {showCareSheet && (
+      <View style={styles.shareSheetOverlay}>
+        <Pressable
+          style={styles.shareOverlayBackdrop}
+          onPress={() => setShowCareSheet(false)}
+        />
+        <View style={[styles.shareSheet, { backgroundColor: theme.colors.bg }]}>
+          <PetCareSheet onClose={() => setShowCareSheet(false)} />
+        </View>
+      </View>
+    )}
     </>
   );
 }
@@ -554,5 +605,19 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'right',
     marginLeft: 16,
+  },
+  // Step 10 — Pet Care sheet overlay
+  shareSheetOverlay: {
+    ...StyleSheet.absoluteFill,
+    justifyContent: 'flex-end',
+  },
+  shareOverlayBackdrop: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  shareSheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 40,
   },
 });
