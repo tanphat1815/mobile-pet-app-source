@@ -8,16 +8,82 @@
  * Step 6 — mở rộng Quest với tier (daily/weekly/event), difficulty
  * (easy/medium/hard/epic), reroll cost + free allowance, streakBonus
  * multiplier.
+ *
+ * Step 8 — Achievements parity với desktop:
+ *   - 8 categories bao gồm progression / gameplay / hidden
+ *   - 5 rarity tiers: common / uncommon / rare / epic / legendary
+ *   - RARITY_COLORS map dùng constant (không phụ thuộc theme)
+ *   - rarityGlyph / rarityColor / rarityLabel helpers
  */
 
-export type AchievementCategory =
-  | 'care'
-  | 'social'
-  | 'exploration'
-  | 'collection'
-  | 'special';
+// ============================================================================
+// Achievement Categories (8 — align với desktop)
+// ============================================================================
 
-export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum';
+export type AchievementCategory =
+  | 'progression' | 'care' | 'social' | 'gameplay'
+  | 'exploration' | 'collection' | 'special' | 'hidden';
+
+/** Step 8 — replace bronze/silver/gold/platinum tier với rarity */
+export type AchievementRarity =
+  | 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+
+export const RARITY_COLORS: Record<AchievementRarity, string> = {
+  common:    '#989EA8',  // gray
+  uncommon:  '#34C759',  // green
+  rare:      '#007AFF',  // blue
+  epic:      '#B388FF',  // purple
+  legendary: '#FFD700',  // gold
+};
+
+export function rarityColor(rarity: AchievementRarity): string {
+  return RARITY_COLORS[rarity];
+}
+
+export function rarityLabel(rarity: AchievementRarity): string {
+  switch (rarity) {
+    case 'common':    return 'Common';
+    case 'uncommon':  return 'Uncommon';
+    case 'rare':      return 'Rare';
+    case 'epic':      return 'Epic';
+    case 'legendary': return 'Legendary';
+  }
+}
+
+export function rarityGlyph(rarity: AchievementRarity): string {
+  switch (rarity) {
+    case 'common':    return '⚪';
+    case 'uncommon':  return '🟢';
+    case 'rare':      return '🔵';
+    case 'epic':      return '🟣';
+    case 'legendary': return '⭐';
+  }
+}
+
+/** Step 8 — 8 category glyphs */
+export function categoryGlyph(c: AchievementCategory): string {
+  switch (c) {
+    case 'progression':  return '📈';
+    case 'care':         return '❤️';
+    case 'social':       return '💬';
+    case 'gameplay':     return '🎮';
+    case 'exploration':  return '🧭';
+    case 'collection':   return '📚';
+    case 'special':      return '⭐';
+    case 'hidden':       return '❓';
+  }
+}
+
+export const ACHIEVEMENT_CATEGORIES: { id: AchievementCategory; label: string }[] = [
+  { id: 'progression',  label: 'Progression' },
+  { id: 'care',         label: 'Care' },
+  { id: 'social',       label: 'Social' },
+  { id: 'gameplay',     label: 'Gameplay' },
+  { id: 'exploration',  label: 'Explore' },
+  { id: 'collection',   label: 'Collect' },
+  { id: 'special',      label: 'Special' },
+  { id: 'hidden',       label: 'Hidden' },
+];
 
 /**
  * Step 6 — QuestTier chia theo chu kỳ reset:
@@ -74,7 +140,10 @@ export interface Achievement {
   title: string;
   description: string;
   category: AchievementCategory;
-  tier: AchievementTier;
+  /** Step 8 — rarity tier (replaces tier in new achievements) */
+  rarity: AchievementRarity;
+  /** Backward compat — kept for legacy achievements. Prefer rarity. */
+  tier?: 'bronze' | 'silver' | 'gold' | 'platinum';
   /** Whether the user has unlocked this achievement */
   unlocked: boolean;
   /** Timestamp of unlock (ms) */
@@ -86,8 +155,12 @@ export interface Achievement {
   icon: string;
   /** Optional progress (0..1) toward unlock */
   progress?: number;
+  /** Goal count for progress tracking */
+  goal?: number;
   /** Required progress text (e.g. "Feed 100 times") */
   progressHint?: string;
+  /** Step 8 — hidden achievements show "???" until unlocked */
+  isHidden?: boolean;
 }
 
 export type QuestStatus = 'active' | 'completed' | 'expired' | 'claimed' | 'rerolled';
@@ -138,9 +211,18 @@ export interface Quest {
 if (typeof globalThis !== 'undefined' && (globalThis as any).__DEV__) {
   (globalThis as any).__QUEST_DIFFICULTY_COUNT__ = QUEST_DIFFICULTY.length;
   (globalThis as any).__QUEST_DIFFICULTY__ = QUEST_DIFFICULTY;
+  (globalThis as any).__RARITY_COLORS__ = RARITY_COLORS;
+  (globalThis as any).__ACHIEVEMENT_CATEGORIES__ = ACHIEVEMENT_CATEGORIES;
+  // Step 8 — use distinct names to avoid collision with avatarFrames.ts
+  (globalThis as any).__ACHIEVEMENT_RARITY_COLOR__ = rarityColor;
+  (globalThis as any).__ACHIEVEMENT_RARITY_LABEL__ = rarityLabel;
   if (typeof window !== 'undefined') {
     (window as any).__QUEST_DIFFICULTY_COUNT__ = QUEST_DIFFICULTY.length;
     (window as any).__QUEST_DIFFICULTY__ = QUEST_DIFFICULTY;
+    (window as any).__RARITY_COLORS__ = RARITY_COLORS;
+    (window as any).__ACHIEVEMENT_CATEGORIES__ = ACHIEVEMENT_CATEGORIES;
+    (window as any).__ACHIEVEMENT_RARITY_COLOR__ = rarityColor;
+    (window as any).__ACHIEVEMENT_RARITY_LABEL__ = rarityLabel;
   }
 }
 
@@ -156,7 +238,7 @@ export function questProgressPct(q: Quest): number {
 }
 
 /** Tier -> emoji used as the badge glyph. */
-export function tierGlyph(tier: AchievementTier): string {
+export function tierGlyph(tier: 'bronze' | 'silver' | 'gold' | 'platinum'): string {
   switch (tier) {
     case 'bronze':
       return '🥉';
@@ -166,21 +248,6 @@ export function tierGlyph(tier: AchievementTier): string {
       return '🥇';
     case 'platinum':
       return '💎';
-  }
-}
-
-export function categoryGlyph(c: AchievementCategory): string {
-  switch (c) {
-    case 'care':
-      return '❤️';
-    case 'social':
-      return '💬';
-    case 'exploration':
-      return '🧭';
-    case 'collection':
-      return '📚';
-    case 'special':
-      return '⭐';
   }
 }
 

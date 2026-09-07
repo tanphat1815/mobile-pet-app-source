@@ -3,6 +3,8 @@
  *
  * Square-ish card showing one achievement. Locked achievements are
  * dimmed and show a progress bar instead of the unlock date.
+ *
+ * Step 8 — rarity border color + hidden achievement placeholder ("???").
  */
 
 import React, { useEffect } from 'react';
@@ -17,6 +19,8 @@ import {
   Achievement,
   achievementProgressPct,
   tierGlyph,
+  rarityColor,
+  rarityGlyph,
   categoryGlyph,
 } from '../../api/achievementTypes';
 import { Badge } from './Badge';
@@ -24,12 +28,21 @@ import { Badge } from './Badge';
 export interface AchievementCardProps {
   achievement: Achievement;
   onPress?: () => void;
+  testID?: string;
 }
 
-export function AchievementCard({ achievement, onPress }: AchievementCardProps) {
+export function AchievementCard({ achievement, onPress, testID }: AchievementCardProps) {
   const theme = useTheme();
   const progress = achievementProgressPct(achievement);
   const unlocked = achievement.unlocked;
+
+  // Hidden: show placeholder until unlocked
+  const isHidden = achievement.isHidden && !unlocked;
+
+  // Rarity border color (constant, not theme-dependent)
+  const rarityBorderColor = unlocked
+    ? rarityColor(achievement.rarity)
+    : theme.colors.border;
 
   // Subtle pop animation on mount
   const scale = useSharedValue(0.95);
@@ -44,8 +57,13 @@ export function AchievementCard({ achievement, onPress }: AchievementCardProps) 
     transform: [{ scale: scale.value }],
   }));
 
+  const title = isHidden ? '???' : achievement.title;
+  const description = isHidden ? 'Keep playing to unlock!' : achievement.description;
+  const icon = isHidden ? '❓' : achievement.icon;
+
   return (
     <Animated.View
+      testID={testID ?? `achievement-card-${achievement.id}`}
       style={[styles.root, animatedStyle]}
       onTouchEnd={onPress}
       accessibilityRole="button"
@@ -65,16 +83,17 @@ export function AchievementCard({ achievement, onPress }: AchievementCardProps) 
               ? theme.colors.surface
               : theme.colors.surfaceMuted,
             borderRadius: theme.radius.lg,
-            borderColor: unlocked
-              ? theme.colors.border
-              : 'transparent',
+            borderColor: rarityBorderColor,
+            borderWidth: unlocked ? 2 : 1,
             opacity: unlocked ? 1 : 0.75,
           },
         ]}
       >
         <View style={styles.headerRow}>
-          <Text style={styles.icon}>{achievement.icon}</Text>
-          <Text style={styles.tier}>{tierGlyph(achievement.tier)}</Text>
+          <Text style={styles.icon}>{icon}</Text>
+          <Text style={styles.tier}>
+            {unlocked ? rarityGlyph(achievement.rarity) : tierGlyph(achievement.tier ?? 'bronze')}
+          </Text>
         </View>
         <Text
           style={[
@@ -88,7 +107,7 @@ export function AchievementCard({ achievement, onPress }: AchievementCardProps) 
           ]}
           numberOfLines={2}
         >
-          {achievement.title}
+          {title}
         </Text>
         <Text
           style={[
@@ -100,11 +119,13 @@ export function AchievementCard({ achievement, onPress }: AchievementCardProps) 
           ]}
           numberOfLines={2}
         >
-          {achievement.description}
+          {description}
         </Text>
 
         <View style={styles.footerRow}>
-          <Text style={{ fontSize: 14 }}>{categoryGlyph(achievement.category)}</Text>
+          <Text style={{ fontSize: 14 }}>
+            {categoryGlyph(achievement.category)}
+          </Text>
           {unlocked ? (
             <Badge label="Unlocked" variant="success" size="sm" />
           ) : (
@@ -120,7 +141,7 @@ export function AchievementCard({ achievement, onPress }: AchievementCardProps) 
           )}
         </View>
 
-        {!unlocked && (
+        {!unlocked && !isHidden && (
           <View
             style={[
               styles.progressTrack,
@@ -131,7 +152,7 @@ export function AchievementCard({ achievement, onPress }: AchievementCardProps) 
               style={[
                 styles.progressFill,
                 {
-                  backgroundColor: theme.colors.accent,
+                  backgroundColor: rarityColor(achievement.rarity),
                   width: `${progress}%`,
                 },
               ]}
