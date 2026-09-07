@@ -169,6 +169,7 @@ function applyActionLocally(pet: Pet | null, action: PetAction): Pet | null {
   };
 }
 
+// Dev helpers đã chuyển sang PetSpriteDebugProvider (root-mount).
 // ============================================================================
 // Hook: subscribes to pet:update / pet:mood and pipes into store
 // ============================================================================
