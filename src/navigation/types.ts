@@ -31,6 +31,8 @@ export type MainStackParamList = {
   Ambient: undefined;
   Gratitude: undefined;
   Mood: undefined;
+  // Step 12b — Music
+  MusicHome: undefined;
 };
 
 export type AuthStackParamList = {
