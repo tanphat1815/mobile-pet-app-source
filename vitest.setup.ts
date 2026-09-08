@@ -150,6 +150,7 @@ vi.mock('react-native', () => {
   }
   return {
     Platform: { OS: 'ios', select },
+    NativeModules: {}, // Step 13 — diagnostics reads keys
     useColorScheme: () => 'light',
     View: (props) => props,
     Text: (props) => props,
@@ -172,5 +173,10 @@ vi.mock('react-native', () => {
       isReduceMotionEnabled: async () => false,
       addEventListener: () => ({ remove: () => {} }),
     },
+    Share: { share: async () => undefined },
+    Alert: { alert: () => {}, prompt: () => {} },
+    Modal: () => null,
+    ActivityIndicator: () => null,
+    TextInput: () => null,
   };
 });
