@@ -40,6 +40,8 @@ export type MainStackParamList = {
   AISettings: undefined;
   // Step 12e — Pet Tricks
   TricksHome: undefined;
+  // Step 12f — Competitions
+  CompetitionsHome: undefined;
 };
 
 export type AuthStackParamList = {
