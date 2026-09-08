@@ -40,6 +40,10 @@ export const StorageKeys = {
   WellnessPomodoro: 'wellness.pomodoro_config',
   // Step 12b — Music
   MusicState: 'music.state',
+  // Step 12c — Adventure
+  AdventureCurrent: 'adventure.current',
+  AdventureHistory: 'adventure.history',
+  AdventureUnlocked: 'adventure.unlocked_locations',
 } as const;
 
 export type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys];

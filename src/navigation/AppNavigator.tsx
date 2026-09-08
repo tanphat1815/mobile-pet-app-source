@@ -40,6 +40,7 @@ import { AmbientScreen } from '../screens/wellness/AmbientScreen';
 import { GratitudeScreen } from '../screens/wellness/GratitudeScreen';
 import { MoodScreen } from '../screens/wellness/MoodScreen';
 import { MusicHomeScreen } from '../screens/music/MusicHomeScreen';
+import { AdventureHomeScreen } from '../screens/adventure/AdventureHomeScreen';
 import { initHapticsAccessibility, hapticSuccess } from '../utils/haptics';
 import { getBiometricCapability, biometryLabel } from '../api/biometric';
 import type { RootStackParamList, MainStackParamList } from './types';
@@ -263,6 +264,12 @@ function MainNavigator() {
       <MainStack.Screen
         name="MusicHome"
         component={MusicHomeScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      {/* Step 12c — Adventure */}
+      <MainStack.Screen
+        name="AdventureHome"
+        component={AdventureHomeScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </MainStack.Navigator>
