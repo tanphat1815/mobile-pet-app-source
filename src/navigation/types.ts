@@ -35,6 +35,9 @@ export type MainStackParamList = {
   MusicHome: undefined;
   // Step 12c — Adventure
   AdventureHome: undefined;
+  // Step 12d — AI Chatbot BYOK
+  AIChat: undefined;
+  AISettings: undefined;
 };
 
 export type AuthStackParamList = {
