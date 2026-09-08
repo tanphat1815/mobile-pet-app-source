@@ -51,6 +51,8 @@ export const StorageKeys = {
   TricksState: 'tricks.state',
   // Step 12f — Competitions
   CompetitionsState: 'competitions.state',
+  // Step 12g — Mini Games
+  MiniGamesState: 'mini_games.state',
 } as const;
 
 export type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys];

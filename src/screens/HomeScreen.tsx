@@ -612,6 +612,39 @@ export function HomeScreen({ navigation }: Props) {
         </View>
       </Card>
 
+      {/* Step 12g — Mini-games quick-link */}
+      <Card style={styles.section}>
+        <View style={styles.chatLinkRow}>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                color: theme.colors.text,
+                fontSize: theme.typography.size.headline,
+                fontWeight: '600',
+              }}
+            >
+              🎯 Mini-games
+            </Text>
+            <Text
+              style={{
+                color: theme.colors.textSecondary,
+                fontSize: theme.typography.size.subhead,
+                marginTop: 2,
+              }}
+            >
+              Catch Fall · Timing Rush · Ghi điểm cho Competitions
+            </Text>
+          </View>
+          <Button
+            title="Open"
+            onPress={() => navigation.navigate('MiniGamesHome')}
+            variant="primary"
+            size="sm"
+            testID="home-mini-games-open"
+          />
+        </View>
+      </Card>
+
       {/* Achievements quick-link */}
       <Card style={styles.section}>
         <View style={styles.chatLinkRow}>
