@@ -47,6 +47,8 @@ export const StorageKeys = {
   // Step 12d — AI Chatbot BYOK
   AISettings: 'ai.settings',
   AIHistory: 'ai.history',
+  // Step 12e — Pet Tricks
+  TricksState: 'tricks.state',
 } as const;
 
 export type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys];

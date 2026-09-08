@@ -8,22 +8,23 @@
 
 | # | Step | Effort | Visible | Status |
 |---|------|--------|---------|--------|
-| 1 | [Theme parity](./step-01-theme-parity.md) | Small | ✅ High | ⏸ Not started |
-| 2 | [Seasonal + Premium themes](./step-02-seasonal-premium-themes.md) | Medium | ✅ High | ⏸ |
-| 3 | [Animated pet sprite FSM](./step-03-animated-pet-sprite.md) | Large | ✅ Highest | ⏸ |
-| 4 | [Friends advanced (tags/gifts/activity)](./step-04-friends-advanced.md) | Medium | Medium | ⏸ |
-| 5 | [Chat enrichment (emoji/stickers/image/actions)](./step-05-chat-enrichment.md) | Med-Large | ✅ High | ⏸ |
-| 6 | [Quests upgrade](./step-06-quests-upgrade.md) | Small-Med | Medium | ⏸ |
-| 7 | [Rich profile + avatar frames](./step-07-rich-profile.md) | Small-Med | Medium | ⏸ |
-| 8 | [Achievements parity + toast](./step-08-achievements-parity.md) | Small | Medium | ⏸ |
-| 9 | [Notification center + banner](./step-09-notification-center.md) | Small | Medium | ⏸ |
-| 10 | [Pet care actions (bath/medicine/vitamin)](./step-10-pet-care-actions.md) | Small | Medium | ⏸ |
-| 11 | [Settings panel restructure](./step-11-settings-restructure.md) | Small | Low | ⏸ |
-| 12a | [Wellness](./step-12a-wellness.md) | Large | ✅ High | ⏸ |
-| 12b | [Music](./step-12b-music.md) | Large | ✅ High | ⏸ |
-| 12c | [Adventure](./step-12c-adventure.md) | Large | ✅ High | ⏸ |
-| 12d | [AI Chatbot BYOK](./step-12d-ai-chatbot.md) | Large | ✅ High | ⏸ |
-| 13 | [Admin / diagnostics lite](./step-13-admin-diagnostics.md) | Small | Dev only | ⏸ |
+| 1 | [Theme parity](./step-01-theme-parity.md) | Small | ✅ High | ✅ Done |
+| 2 | [Seasonal + Premium themes](./step-02-seasonal-premium-themes.md) | Medium | ✅ High | ✅ Done |
+| 3 | [Animated pet sprite FSM](./step-03-animated-pet-sprite.md) | Large | ✅ Highest | ✅ Done |
+| 4 | [Friends advanced (tags/gifts/activity)](./step-04-friends-advanced.md) | Medium | Medium | ✅ Done |
+| 5 | [Chat enrichment (emoji/stickers/image/actions)](./step-05-chat-enrichment.md) | Med-Large | ✅ High | ✅ Done |
+| 6 | [Quests upgrade](./step-06-quests-upgrade.md) | Small-Med | Medium | ✅ Done |
+| 7 | [Rich profile + avatar frames](./step-07-rich-profile.md) | Small-Med | Medium | ✅ Done |
+| 8 | [Achievements parity + toast](./step-08-achievements-parity.md) | Small | Medium | ✅ Done |
+| 9 | [Notification center + banner](./step-09-notification-center.md) | Small | Medium | ✅ Done |
+| 10 | [Pet care actions (bath/medicine/vitamin)](./step-10-pet-care-actions.md) | Small | Medium | ✅ Done |
+| 11 | [Settings panel restructure](./step-11-settings-restructure.md) | Small | Low | ✅ Done |
+| 12a | [Wellness](./step-12a-wellness.md) | Large | ✅ High | ✅ Done |
+| 12b | [Music](./step-12b-music.md) | Large | ✅ High | ✅ Done |
+| 12c | [Adventure](./step-12c-adventure.md) | Large | ✅ High | ✅ Done |
+| 12d | [AI Chatbot BYOK](./step-12d-ai-chatbot.md) | Large | ✅ High | ✅ Done |
+| 12e | [Pet Tricks / Training](./step-12e-tricks.md) | Medium | ✅ High | ✅ Done |
+| 13 | [Admin / diagnostics lite](./step-13-admin-diagnostics.md) | Small | Dev only | ✅ Done |
 
 ---
 
