@@ -32,6 +32,7 @@ import { NotificationBell } from '../shared/components/NotificationBell';
 import { NotificationCenter } from '../shared/components/NotificationCenter';
 import { PetCareSheet } from '../shared/components/PetCareSheet';
 import { useNotificationStore } from '../stores/NotificationStore';
+import { useQuickSwitcher } from '../navigation/QuickSwitcherProvider';
 import type { PetAction } from '../api/petTypes';
 import {
   cooldownRemaining,
@@ -59,6 +60,7 @@ export function HomeScreen({ navigation }: Props) {
   const reducedMotion = useReducedMotion();
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const [showCareSheet, setShowCareSheet] = useState(false);
+  const quickSwitcher = useQuickSwitcher();
 
   const { user, status, logout } = useAuthStore();
   const syncStatus = useSyncStore((s) => s.status);
@@ -722,6 +724,23 @@ export function HomeScreen({ navigation }: Props) {
       <View style={{ height: theme.spacing.xxxl }} />
     </ScrollView>
 
+    {/* Step 14 — Quick Switcher FAB */}
+    <Pressable
+      testID="fab-search"
+      accessibilityRole="button"
+      accessibilityLabel="Open quick switcher"
+      onPress={() => quickSwitcher.open()}
+      style={({ pressed }) => [
+        styles.fab,
+        {
+          backgroundColor: theme.colors.accent,
+          opacity: pressed ? 0.85 : 1,
+        },
+      ]}
+    >
+      <Text style={styles.fabIcon}>🔍</Text>
+    </Pressable>
+
     {/* Step 9 — Notification Center */}
     <NotificationCenter
       visible={showNotificationCenter}
@@ -792,6 +811,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+  },
+  // Step 14 — Quick Switcher FAB
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 96, // sits above the sign-out button / bottom safe area
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+  },
+  fabIcon: {
+    fontSize: 24,
   },
   greeting: {},
   displayName: {},

@@ -48,6 +48,10 @@ import { CompetitionsScreen } from '../screens/competitions/CompetitionsScreen';
 import { MiniGamesHomeScreen } from '../screens/minigames/MiniGamesHomeScreen';
 import { CatchFallScreen } from '../screens/minigames/CatchFallScreen';
 import { TimingGameScreen } from '../screens/minigames/TimingGameScreen';
+// Step 13 — Admin / Diagnostics (dev-only)
+import { AdminDashboardScreen } from '../screens/AdminDashboardScreen';
+// Step 14 — Global Quick Switcher (search-first GP4)
+import { QuickSwitcherProvider } from './QuickSwitcherProvider';
 // Step 12g — Side-effect imports so dev exposes register before any
 // screen mounts (Playwright tests need them at app boot).
 import '../api/miniGamesDev';
@@ -181,7 +185,15 @@ function RootNavigator() {
         contentStyle: { backgroundColor: theme.colors.bg },
       }}
     >
-      <RootStack.Screen name="Phase" component={PhasePicker} />
+      {/* Step 14 — QuickSwitcherProvider wraps the active phase so the
+          modal inherits the correct navigation context (Auth vs Main). */}
+      <RootStack.Screen name="Phase">
+        {() => (
+          <QuickSwitcherProvider>
+            <PhasePicker />
+          </QuickSwitcherProvider>
+        )}
+      </RootStack.Screen>
     </RootStack.Navigator>
   );
 }
@@ -321,6 +333,14 @@ function MainNavigator() {
         component={TimingGameScreen}
         options={{ animation: 'slide_from_right' }}
       />
+      {/* Step 13 — Admin / Diagnostics. Only registered in __DEV__ */}
+      {__DEV__ && (
+        <MainStack.Screen
+          name="Admin"
+          component={AdminDashboardScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+      )}
     </MainStack.Navigator>
   );
 }
